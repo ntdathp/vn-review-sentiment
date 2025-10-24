@@ -22,6 +22,9 @@ except Exception:
 from sklearn.model_selection import train_test_split, GroupShuffleSplit
 from sklearn.metrics import classification_report, confusion_matrix
 
+from textproc import (LABELS_5, normalize_text, sentiment_prefix, maybe_segment)
+
+
 # ===== Labels (5-class) =====
 LABELS_5 = ["very_negative","negative","neutral","positive","very_positive"]
 LBL2ID = {l:i for i,l in enumerate(LABELS_5)}
