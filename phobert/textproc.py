@@ -166,7 +166,7 @@ TEENCODE_INV: Dict[str, List[str]] = {
     "vì": ["tại","tại vì","bởi vì","tai vi","boi vi"],
 
     # ===== Danh mục TMĐT =====
-    "sản phẩm": ["sp","s/phẩm","spham","san pham","sản ph","mặt hàng","mh","items","item"],
+    "sản phẩm": ["sp","s/phẩm","spham","san pham","sản ph","mặt hàng","mh","items","item", "san ph","sản ph","san_ph","s.phẩm","s pham","sp ham","s ph"],
     "đơn hàng": ["đh","don hang","đơn","order","od","đặt hàng","dat hang","đặt đơn","dat don"],
     "khuyến mãi": ["km","sale","gg","flash sale","fs","đại hạ giá","đhg","sale khủng","sale to"],
     "giảm giá": ["gg","sale off","down giá","deal","deal sốc","gíam","giam gia","giãm gia"],
@@ -202,7 +202,7 @@ TEENCODE_INV: Dict[str, List[str]] = {
     "thất vọng": ["that vong","tv","tụt mood","siêu thất vọng","fail","disappointed","thất vọng tràn trề"],
     "tệ": ["te","tệ vl","tệ vcl","tệ quá","tệ thật sự","tệ hại"],
     "kém": ["kem","dởm","kém chất lượng","kém xịn","kém bền"],
-    "bình thường": ["bt","btw","bth","binh thuong","thường thôi","tạm"],
+    "bình thường": ["bt","btw","bth","binh thuong","thường thôi","tạm", "bth", "bình tg", "binh_thuong","b.t"],
     "xuất sắc": ["xuat sac","xs","xuất xắc","rất xuất sắc","quá xuất sắc"],
     "ngon bổ rẻ": ["nbr","ngon rẻ","ngon-bổ-rẻ","ngon bổ re"],
 
@@ -289,6 +289,7 @@ TEENCODE_INV: Dict[str, List[str]] = {
     # ===== Một số câu khen/chê gọn gàng =====
     "rất tốt": ["tot vcl","tot vl","good lắm","good phết","quá tốt","tốt xịn","tốt tuyệt"],
     "quá tệ": ["te vl","te vcl","tệ vc","tệ dã man","tệ quá","tệ cực"],
+    "tệ quá": ["te qua","tệ qa","te qa","tệ qá","te quá"],
     "rất đẹp": ["đẹp xỉu","đẹp xỉu up xỉu down","đẹp mlem","đẹp phết","đẹp lun","đep lun","đẹp mê ly"],
     "siêu nhanh": ["nhanh vãi","nhanh khủng","nhanh kinh khủng","siêu tốc","cực nhanh"],
 }
@@ -395,6 +396,26 @@ ACCENT_MAP = {
     "chat_luong":"chất lượng","trai_nghiem":"trải nghiệm","am_thanh":"âm thanh",
     "man_hinh":"màn hình","nhiet_do":"nhiệt độ","dich_vu":"dịch vụ","ho_tro":"hỗ trợ",
     "phan_hoi":"phản hồi","binh_thuong":"bình thường","xuat_sac":"xuất sắc",
+
+    # Neutral shorthand
+    "bt": "bình thường",
+    "bth": "bình thường",
+    "b.t": "bình thường",
+    "binh thg": "bình thường",
+    "binh tg": "bình thường",
+
+    # Product shorthands / broken forms
+    "san ph": "sản phẩm",
+    "san_ph": "sản phẩm",
+    "s pham": "sản phẩm",
+    "s ph": "sản phẩm",
+    "s.pham": "sản phẩm",
+    "san phan": "sản phẩm",      # typo → phẩm
+
+    # Negative shorthands
+    "te qua": "tệ quá",
+    "te qa": "tệ quá",
+    "tệ qa": "tệ quá",
 }
 
 
@@ -475,6 +496,13 @@ BIGRAM_HINTS = {
     # Các cặp phổ biến khác
     ("đáng","mua"): 1.8, ("đáng","giá"): 1.7, ("đẹp","xuất"): 1.6,  # → xuất sắc
     ("bền","bỉ"): 1.9, ("vỡ","góc"): 1.7, ("xước","nhẹ"): 1.6, ("bong","tróc"): 1.7,
+
+    ("sản", "phẩm"): 2.5,
+    ("san", "pham"): 2.5,        # phòng khi prev token chưa có dấu
+    ("tệ", "quá"): 2.2,
+    ("te", "qua"): 2.2,
+    ("bình", "thường"): 2.0,
+    ("binh", "thuong"): 2.0,
 }
 
 

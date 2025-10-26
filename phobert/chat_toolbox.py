@@ -2,15 +2,16 @@
 # -*- coding: utf-8 -*-
 """
 Chat Toolbox GUI (PyQt6) — Auto-load my_phobert_only.py, toggle PhoBERT <-> LLM (HTTP)
-V1.8 — Gate vô nghĩa:
-  • Tích hợp textproc (normalize/count_lexicon/diacritic)
-  • Fallback cụm ngắn tích cực (xịn xò/xịn sò/quá xịn/...)
-  • Tautology 'X như|là|thì X' & Generic-only
-  • NEW: Generic + Gibberish (vd: 'sản phâm sfasjf') -> skip
+V2.7 — Gate vô nghĩa (siết mạnh chuỗi nhiễu dài, token cực ngắn, lặp 'oi', f/j/w/z):
+  • Multi-token gibberish: 2–12 token; skip nếu gib_cnt >= max(2, ceil(0.7*non_hint)) hoặc gib_ratio ≥ 0.75
+  • Token rất ngắn (≤2) KHÔNG có nguyên âm (kể cả có dấu) => rác; nếu ≥3 token như vậy trong câu => skip
+  • Nếu 1 token (≤3, không phải hint/sentiment) lặp ≥3 lần => skip
+  • Nếu sau khi loại hint/sentiment, không còn token có nguyên âm => skip (bag of noise)
+  • Giữ toàn bộ rule V2.6 & ưu tiên hint + short_sentiment
 """
 from __future__ import annotations
 
-import sys, os, traceback, importlib, importlib.util, html, json, re, unicodedata
+import sys, os, traceback, importlib, importlib.util, html, json, re, unicodedata, string, math
 from typing import Callable, Optional
 from collections import Counter
 from PyQt6 import QtCore, QtWidgets, QtGui
@@ -19,7 +20,7 @@ from PyQt6 import QtCore, QtWidgets, QtGui
 try:
     import textproc as tp
 except Exception:
-    tp = None  # vẫn chạy được, chỉ mất 1 số tín hiệu
+    tp = None  # vẫn chạy, chỉ mất 1 số tín hiệu
 
 # Optional: HTTP client for LLM
 try:
@@ -109,20 +110,38 @@ class ChatWindow(QtWidgets.QMainWindow):
     _PROF_SET = {"cm","cmm","cml","dm","đm","vl","vkl","cc","wtf","lol","shit","fuck","địt","lồn","cặc","đéo","mẹ"}
     _PROF_RE  = re.compile(r"^(?:c+\.?m+(?:\.?l+)?|d+\.?m+|đ+\.?m+)$", re.IGNORECASE | re.UNICODE)
 
-    _PRODUCT_HINTS = re.compile(
-        r"(sản|phẩm|hàng|shop|đơn|đóng|gói|màn|hình|loa|tai|nghe|âm|bass|pin|sạc|"
-        r"chuột|bàn|phím|điện|thoại|ốp|miếng|dán|áo|quần|giày|dép|đẹp|tốt|xấu|ổn|ok|oke)",
-        re.UNICODE
-    )
+    # Hints: NGUYÊN TỪ (full-word) — không dùng substring
+    _HINT_WORDS = {
+        # danh mục / hàng hoá
+        "sản","phẩm","sản phẩm","san","pham","sanpham","hàng","hang","shop","sp","đơn","don","order",
+        # thuộc tính / linh kiện
+        "pin","sạc","sac","màn","hình","man","hinh","loa","tai","nghe","âm","bass","wifi","bluetooth",
+        "ốp","op","miếng","dán","mieng","dan","áo","quần","giày","dép","ao","quan","giay","dep",
+        # shorthands neutral
+        "bt","bth",
+    }
 
+    # Short sentiment tokens (có & không dấu)
+    _SHORT_POS = {"tốt","tot","ok","oke","oki","ổn","on","đẹp","dep","xịn","xin","ung","ưng"}
+    _SHORT_NEG = {"tệ","te","xấu","xau","kém","kem","đắt","dat","phèn","phen","chan","chán","dở","dởm","lởm","dom","lom"}
+    _SHORT_NEU = {"bt","bth"}
+
+    # Chữ cái
     _CONSONANTS = set(chr(c) for c in range(97,123)) - set("aeiouy"); _CONSONANTS.update(list("đ"))
+    _VOWELS = set("aeiouy")
+    _VI_VOWELS_ALL = set("aăâeêioôơuưyáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ")  # để bắt nguyên âm có dấu
+    _RARE_LATINS = set("fjwz")  # TV ít dùng
 
-    # Fallback cụm tích cực ngắn (cứu khi textproc không match)
+    # Fallback tích cực/tiêu cực ngắn (mẫu câu)
     _LOCAL_POS_FALLBACK = [
-        re.compile(r"\bxịn\s*[sx][òo]\b", re.IGNORECASE),  # xịn sò / xịn xò
+        re.compile(r"\bxịn\s*[sx][òo]\b", re.IGNORECASE),
         re.compile(r"\bquá\s*xịn\b", re.IGNORECASE),
         re.compile(r"\bquá\s*ok(?:e+)?\b", re.IGNORECASE),
         re.compile(r"\bshop\s*(ổn|ok|oke|uy\s*tín|nhiệt\s*tình)\b", re.IGNORECASE),
+    ]
+    _LOCAL_NEG_FALLBACK = [
+        re.compile(r"\b(tệ|xấu|kém|dởm|lởm|đắt|phèn)\b", re.IGNORECASE),
+        re.compile(r"\b(sản\s*phẩm|sp|hàng|shop)\s+(rất\s+)?(tệ|xấu|kém|dởm|lởm|đắt|phèn)\b", re.IGNORECASE),
     ]
 
     # Generic tokens & function words (không dấu)
@@ -225,65 +244,138 @@ class ChatWindow(QtWidgets.QMainWindow):
     # ---------- Helpers ----------
     def _canon_token(self, tok: str) -> str:
         return re.sub(r'(.)\1{2,}', r'\1\1', tok.lower())
+
     def _token_is_profanity(self, tok: str) -> bool:
         return (tok in self._PROF_SET) or bool(self._PROF_RE.match(tok))
+
     def _strip_diacritics_basic(self, s: str) -> str:
         s = unicodedata.normalize("NFD", s)
         s = s.replace("đ","d").replace("Đ","D")
         s = "".join(ch for ch in s if unicodedata.category(ch) != "Mn")
         return unicodedata.normalize("NFC", s)
+
     def _consonant_ratio(self, s: str) -> float:
         if not s: return 0.0
         letters = [c for c in s.lower() if c.isalpha()]
         if not letters: return 0.0
         consonants = sum(1 for c in letters if (c in self._CONSONANTS))
         return consonants / len(letters)
+
+    def _vowel_ratio(self, s: str) -> float:
+        if not s: return 0.0
+        letters = [c for c in s.lower() if c.isalpha()]
+        if not letters: return 0.0
+        nod = self._strip_diacritics_basic("".join(letters)).lower()
+        vowels = sum(1 for c in nod if c in set("aeiouy"))
+        return vowels / len(letters)
+
     def _has_repeating_chunk(self, s: str) -> bool:
         if len(s) < 6: return False
         for k in (2, 3, 4):
-            m = re.search(rf"([a-z0-9]{{{k}}})\1+", s)
+            m = re.search(rf"([a-z0-9]{{{k}}})\1+", s.lower())
             if m: return True
         return False
+    
+    def _is_vowel_only_short(self, s: str) -> bool:
+        s = s.strip(string.punctuation)
+        if not s:
+            return False
+        letters = [ch for ch in s.lower() if ch.isalpha()]
+        if not letters or len(letters) > 3:
+            return False
+        # True nếu tất cả là nguyên âm (kể cả có dấu)
+        return all(ch in self._VI_VOWELS_ALL for ch in letters)
+
+
     def _norm_words(self, text: str):
         nod = (tp.strip_accents_simple(text) if tp else self._strip_diacritics_basic(text))
-        return re.findall(r"[a-z0-9]+", nod.lower())
+        return re.findall(r"[A-Za-zÀ-ỹà-ỹ0-9]+", nod)
 
-    # NEW: detect tautology & generic-only
+    def _is_product_hint_token(self, tok: str) -> bool:
+        t = tok.strip().lower()
+        if not t: return False
+        t = t.strip(string.punctuation)
+        if not t: return False
+        t_nod = self._strip_diacritics_basic(t)
+        return (t in self._HINT_WORDS) or (t_nod in self._HINT_WORDS)
+
+    def _is_short_sentiment_token(self, tok: str) -> bool:
+        t = tok.strip().lower()
+        if not t: return False
+        t = t.strip(string.punctuation)
+        if not t: return False
+        t_nod = self._strip_diacritics_basic(t)
+        return (t in self._SHORT_POS or t in self._SHORT_NEG or t in self._SHORT_NEU
+                or t_nod in self._SHORT_POS or t_nod in self._SHORT_NEG or t_nod in self._SHORT_NEU)
+
+    def _has_vi_vowel(self, s: str) -> bool:
+        return any(ch.lower() in self._VI_VOWELS_ALL for ch in s)
+
+    def _token_is_gibberish(self, t: str) -> bool:
+        if not t: return True
+        core = t.strip(string.punctuation)
+        if not core: return True
+
+        letters = sum(ch.isalpha() for ch in core)
+        digits  = sum(ch.isdigit() for ch in core)
+        if digits > 0 and letters < 3 and len(core) >= 5:
+            return True
+
+        nod = (tp.strip_accents_simple(core) if tp else self._strip_diacritics_basic(core))
+        cons_ratio = self._consonant_ratio(nod); vow_ratio = self._vowel_ratio(nod)
+
+        # token 1–2 ký tự: nếu không có nguyên âm & không phải hint/sentiment => rác
+        if 1 <= len(core) <= 2:
+            if (not self._has_vi_vowel(core)) and (not self._is_product_hint_token(core)) and (not self._is_short_sentiment_token(core)):
+                return True
+
+        # token 3–4 ký tự, vowel_ratio rất thấp và không phải hint/sentiment -> rác
+        if 3 <= len(nod) <= 4 and vow_ratio <= 0.25:
+            if not (self._is_product_hint_token(core) or self._is_short_sentiment_token(core)):
+                return True
+
+        # token dài có chữ hiếm (f/j/w/z) và không phải hint/sentiment -> rác
+        if len(nod) >= 5 and any(c in self._RARE_LATINS for c in nod):
+            if not (self._is_product_hint_token(core) or self._is_short_sentiment_token(core)):
+                return True
+
+        # chữ 'q' riêng: nếu không phải "qu" ở đầu => nghi rác khi token ngắn
+        if len(nod) <= 4 and "q" in nod and not nod.startswith("qu"):
+            if not (self._is_product_hint_token(core) or self._is_short_sentiment_token(core)):
+                return True
+
+        # 3+ phụ âm liên tiếp → nghi rác
+        if re.search(r"[^aeiouy\d]{3,}", nod) and len(nod) >= 5:
+            return True
+
+        # lặp chunk / quá nhiều phụ âm / quá ít nguyên âm
+        if len(nod) >= 5 and (self._has_repeating_chunk(nod) or cons_ratio >= 0.75 or vow_ratio <= 0.18):
+            return True
+
+        # không là hint và nguyên âm cực thấp
+        if len(nod) >= 6 and (not self._is_product_hint_token(core)) and vow_ratio <= 0.15:
+            return True
+
+        return False
+
+    # Tautology & generic-only
     def _is_tautology_like(self, text: str) -> bool:
         nod = (tp.strip_accents_simple(text) if tp else self._strip_diacritics_basic(text)).lower()
         nod = re.sub(r"\s+", " ", nod).strip()
         if re.search(r"\b([a-z0-9]{2,}(?:\s+[a-z0-9]{2,}){0,3})\s+(nhu|la|thi)\s+\1\b", nod):
             return True
         toks = re.findall(r"[a-z0-9]+", nod)
-        if toks:
-            if all(t in self._GENERIC_TOKENS or t in self._FUNC_WORDS for t in toks):
-                return True
+        if toks and all(t in self._GENERIC_TOKENS or t in self._FUNC_WORDS for t in toks):
+            return True
         return False
 
-    # NEW: generic + gibberish (vd: 'san pham sfasjf')
+    # Generic + Gibberish (câu ngắn)
     def _is_generic_plus_gibberish(self, text: str) -> bool:
         toks = self._norm_words(text)
         if not toks: return False
-        # tách generic/func và phần còn lại
         generic_or_func = [t for t in toks if (t in self._GENERIC_TOKENS or t in self._FUNC_WORDS)]
         others = [t for t in toks if t not in self._GENERIC_TOKENS and t not in self._FUNC_WORDS]
-        if not others:
-            return False
-        # Nếu phần "khác" chỉ toàn 1–2 token và có >=1 token nghi rác -> true
-        def _is_gib(t: str) -> bool:
-            if any(ch.isdigit() for ch in t):  # có số thì coi là thông tin -> không xem là rác ở rule này
-                return False
-            L = len(t)
-            nod = t
-            cons_ratio = self._consonant_ratio(nod)
-            if L >= 5 and (cons_ratio >= 0.75 or self._has_repeating_chunk(nod)):
-                return True
-            # rất ít dấu tiếng Việt (sau strip còn y như cũ) + không nằm trong product hints
-            if L >= 5 and not self._PRODUCT_HINTS.search(t) and self._has_repeating_chunk(nod):
-                return True
-            return False
-        gib_cnt = sum(_is_gib(x) for x in others)
-        # Chỉ kích hoạt khi đa số phần còn lại là gibberish và phần generic chiếm đa số tổng token
+        gib_cnt = sum(self._token_is_gibberish(x) for x in others if not self._is_product_hint_token(x))
         if gib_cnt >= 1 and len(others) <= 2 and len(generic_or_func) >= max(1, len(toks) - len(others)):
             return True
         return False
@@ -305,77 +397,110 @@ class ChatWindow(QtWidgets.QMainWindow):
         prof_ratio = (bad_tok_cnt / tok_cnt) if tok_cnt else 0.0
         return alpha_ratio, uniq_ratio, sym_ratio, tok_cnt, bad_tok_cnt, toks_c, toks, avg_len, prof_ratio
 
-    def _is_single_token_noise(self, text: str) -> bool:
-        toks = re.findall(r"\w+", text.strip().lower(), re.UNICODE)
-        if len(toks) != 1: return False
-        t0 = toks[0]
-        if re.search(r"\d", t0): return False
-        if self._PRODUCT_HINTS.search(t0): return False
-        L = len(t0)
-        nod = (tp.strip_accents_simple(t0) if tp else self._strip_diacritics_basic(t0))
-        dia_ratio = (tp.approx_diacritic_ratio(t0) if tp else 0.0)
-        cons_ratio = self._consonant_ratio(nod)
-        if L >= 12: return True
-        if 6 <= L <= 11:
-            if self._has_repeating_chunk(nod): return True
-            if cons_ratio >= 0.75: return True
-            if dia_ratio < 0.05: return True
-        return False
-
     def _is_low_info(self, text: str):
         """
         Trả về (True/False, reason_key, reason_msg).
-        Dùng snapshot đã normalize của textproc để quyết định, nhưng KHÔNG sửa input gửi vào model.
         """
-        t = text.strip()
+        t = re.sub(r"\s+", " ", text).strip()
         if t == "": return True, "empty", "Văn bản trống."
         if self._PAT_ALO.match(t): return True, "greeting/test-mic", "Chuỗi chào/kiểm tra micro, không đủ ngữ cảnh."
         if self._PAT_REPEAT_SYL.match(t.replace(".", "").replace("!", "").lower()):
             return True, "repeated-syllables", "Chuỗi lặp âm tiết, không chứa ý kiến về sản phẩm."
-        if self._is_single_token_noise(t):
-            return True, "single-token-gibberish", "Văn bản vô nghĩa: 1 từ không có nội dung đánh giá."
         if self._is_tautology_like(t):
             return True, "tautology", "Câu lặp lại cùng một cụm (ví dụ: 'X như X'), không chứa nhận xét."
+
+        # 1 token cực nhiễu
+        if self._is_single_token_noise(t):
+            return True, "single-token-gibberish", "Văn bản vô nghĩa: 1 từ không có nội dung đánh giá."
+
+        # Generic + Gibberish ngắn
         if self._is_generic_plus_gibberish(t):
             return True, "generic+gibberish", "Chỉ chứa từ chung + 1–2 từ vô nghĩa, không có nhận xét."
 
         alpha_ratio, uniq_ratio, sym_ratio, tok_cnt, bad_tok_cnt, toks_c, toks, avg_len, prof_ratio = self._sig_stats(t)
 
-        # textproc lexicon signals
+        # ===== PRIORITY: nếu có (product-hint) + (short-sentiment) => giữ lại =====
+        if 2 <= tok_cnt <= 6:
+            has_hint = any(self._is_product_hint_token(w) for w in toks_c)
+            has_short_senti = any(self._is_short_sentiment_token(w) for w in toks_c)
+            if has_hint and has_short_senti:
+                return False, "", ""
+
+        # textproc lexicon signals (nếu có)
         t_norm = tp.normalize_text(t) if tp else t
         try:
             pos_sig, neg_sig = tp.count_lexicon(t_norm) if tp else (0, 0)
         except Exception:
             pos_sig, neg_sig = (0, 0)
 
-        # LOCAL fallback: cứu cụm ngắn tích cực
+        # LOCAL fallback: tích cực & tiêu cực ngắn (pattern)
         if pos_sig == 0 and neg_sig == 0:
             for pat in self._LOCAL_POS_FALLBACK:
-                if pat.search(t):
-                    pos_sig = 1
-                    break
+                if pat.search(t): pos_sig = 1; break
+        if pos_sig == 0 and neg_sig == 0:
+            for pat in self._LOCAL_NEG_FALLBACK:
+                if pat.search(t): neg_sig = 1; break
 
-        # Repeated token ≥3 lần
+        # ===== Bag of noise: sau khi bỏ hint/sentiment không còn token có nguyên âm =====
+        word_toks = re.findall(r"[A-Za-zÀ-ỹà-ỹ0-9]+", t, re.UNICODE)
+        non_hint2 = [w for w in word_toks if not (self._is_product_hint_token(w) or self._is_short_sentiment_token(w))]
+        if non_hint2 and not any(self._has_vi_vowel(w) for w in non_hint2):
+            return True, "no-vowel-nonhint", "Không có từ mang nguyên âm/ý nghĩa sau khi loại từ gợi ý."
+
+        # ===== Multi-token gibberish (mạnh tay hơn): 2–12 token =====
+        if 2 <= len(word_toks) <= 12:
+            non_hint = [w for w in word_toks
+                        if not (self._is_product_hint_token(w) or self._is_short_sentiment_token(w))]
+            if non_hint:
+                gib_flags   = [self._token_is_gibberish(w) for w in non_hint]
+                filler_flags = [self._is_vowel_only_short(w) for w in non_hint]  # ví dụ: "oi", "ai", "ơi"
+                gib_cnt     = sum(gib_flags)
+                filler_cnt  = sum(filler_flags)
+                gib_ratio   = gib_cnt / max(1, len(non_hint))
+
+                # Ngưỡng mới: 0.6 (≈ 2/3 khi có 3 token)
+                need = max(2, math.ceil(0.6 * len(non_hint)))
+
+                if (
+                    gib_cnt >= need                   # đủ số lượng rác theo ngưỡng 0.6
+                    or gib_ratio >= (2/3)             # hoặc tỉ lệ rác ≥ 2/3
+                    or (gib_cnt >= 2 and filler_cnt >= 1 and len(word_toks) <= 4)  # 2 rác + 1 filler ngắn
+                ):
+                    return True, "multi-token-gibberish", "Các từ chủ yếu vô nghĩa, không có nội dung đánh giá."
+
+
+        # Lặp hạt ngắn (≤3) ≥3 lần
+        short_non_hint = [w.lower() for w in word_toks if (len(w) <= 3 and not self._is_product_hint_token(w) and not self._is_short_sentiment_token(w))]
+        if short_non_hint:
+            tok_most, n_most = Counter(short_non_hint).most_common(1)[0]
+            if n_most >= 3:
+                return True, "repeated-short-token", "Lặp từ rất ngắn quá nhiều, thiếu nội dung."
+
+        # ≥3 token rất ngắn (≤2) không có nguyên âm
+        very_short_no_vowel = sum(1 for w in word_toks if len(w) <= 2 and not self._has_vi_vowel(w))
+        if very_short_no_vowel >= 3:
+            return True, "many-very-short", "Quá nhiều từ cực ngắn không có nguyên âm, thiếu nội dung."
+
+        # Repeated token ≥3 lần (tổng quát)
         if tok_cnt >= 3:
-            tok_most, n_most = Counter(toks_c).most_common(1)[0]
-            if n_most >= 3 and (len(tok_most) <= 6 or self._token_is_profanity(tok_most)):
+            tok_most2, n_most2 = Counter(toks_c).most_common(1)[0]
+            if n_most2 >= 3 and (len(tok_most2) <= 6 or self._token_is_profanity(tok_most2)):
                 if pos_sig == 0 and neg_sig == 0:
                     return True, "repeated-token", "Lặp một từ nhiều lần, thiếu nội dung."
 
         # profanity-only / mostly profanity
-        if (1 <= tok_cnt <= 6) and (prof_ratio >= 0.6):
-            if pos_sig == 0 and neg_sig == 0:
-                return True, "mostly-profanity", "Phần lớn từ ngữ là tục tĩu, thiếu nội dung đánh giá."
+        if (1 <= tok_cnt <= 6) and (prof_ratio >= 0.6) and pos_sig == 0 and neg_sig == 0:
+            return True, "mostly-profanity", "Phần lớn từ ngữ là tục tĩu, thiếu nội dung đánh giá."
 
         # Câu toàn từ rất ngắn
         if tok_cnt <= 4 and avg_len <= 3 and pos_sig == 0 and neg_sig == 0:
             return True, "too-short-words", "Các từ quá ngắn, không đủ ngữ cảnh."
 
-        # Short/letters/symbols
-        if tok_cnt <= 1 and len(t) < 6 and pos_sig == 0 and neg_sig == 0:
-            return True, "too-short", "Quá ngắn, không đủ ngữ cảnh."
-        if alpha_ratio < 0.25 and pos_sig == 0 and neg_sig == 0:
-            return True, "too-few-letters", "Tỷ lệ chữ cái quá thấp."
+        # Letters ratio thấp mà không có tín hiệu nội dung
+        if alpha_ratio < 0.40 and pos_sig == 0 and neg_sig == 0 and not any(self._is_product_hint_token(w) for w in toks_c):
+            return True, "too-few-letters", "Tỷ lệ chữ cái quá thấp, thiếu nội dung."
+
+        # Ký hiệu nhiều + ngắn
         if sym_ratio > 0.35 and len(t) < 30 and pos_sig == 0 and neg_sig == 0:
             return True, "too-many-symbols", "Ký hiệu/emoji quá nhiều, thiếu nội dung."
 
@@ -383,7 +508,36 @@ class ChatWindow(QtWidgets.QMainWindow):
         if uniq_ratio < 0.15 and len(t) < 20 and pos_sig == 0 and neg_sig == 0:
             return True, "low-variance", "Đa dạng ký tự rất thấp, nghi ngờ vô nghĩa."
 
+        # Đặc biệt: 'bt/bth' đi cùng danh từ sản phẩm => giữ lại (neutral)
+        if any(w in {"bt","bth"} for w in toks_c) and any(self._is_product_hint_token(w) for w in toks_c):
+            return False, "", ""
+
         return False, "", ""
+
+    def _is_single_token_noise(self, text: str) -> bool:
+        toks = re.findall(r"\w+", text.strip().lower(), re.UNICODE)
+        if len(toks) != 1: return False
+        t0 = toks[0]
+        if self._is_product_hint_token(t0):
+            return False
+        L = len(t0)
+        nod = (tp.strip_accents_simple(t0) if tp else self._strip_diacritics_basic(t0))
+        dia_ratio = (tp.approx_diacritic_ratio(t0) if tp else 0.0)
+        cons_ratio = self._consonant_ratio(nod); vow_ratio = self._vowel_ratio(nod)
+        letters = sum(ch.isalpha() for ch in t0); digits = sum(ch.isdigit() for ch in t0)
+        if digits > 0 and letters < 3 and L >= 5:
+            return True
+        if L >= 12: return True
+        if 6 <= L <= 11:
+            if self._has_repeating_chunk(nod): return True
+            if cons_ratio >= 0.75: return True
+            if dia_ratio < 0.05: return True
+        if 3 <= L <= 5 and (vow_ratio <= 0.25 or re.search(r"[^aeiouy\d]{3,}", nod)):
+            return True
+        # Thêm: 1–2 ký tự không có nguyên âm => rác
+        if 1 <= L <= 2 and not self._has_vi_vowel(t0):
+            return True
+        return False
 
     # ---------- Engine toggle ----------
     def _on_engine_toggled(self, checked: bool):
@@ -457,7 +611,6 @@ class ChatWindow(QtWidgets.QMainWindow):
         if not text: return
         self.append_user(text); self.input.clear()
 
-        # Gate trước khi chạy model
         is_bad, _, reason_msg = self._is_low_info(text)
         if is_bad:
             skipped = (
@@ -472,7 +625,6 @@ class ChatWindow(QtWidgets.QMainWindow):
 
         self.status.setText("Running…"); self.status.setStyleSheet("color: #1565c0;")
 
-        # Decide runner
         if self.use_llm:
             url = self.txt_llm_url.text().strip()
             model = self.cmb_llm_model.currentText().strip()
