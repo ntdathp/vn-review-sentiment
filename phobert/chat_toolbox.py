@@ -2,12 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 Chat Toolbox GUI (PyQt6) — Auto-load my_phobert_only.py, toggle PhoBERT <-> LLM (HTTP)
-V2.7 — Gate vô nghĩa (siết mạnh chuỗi nhiễu dài, token cực ngắn, lặp 'oi', f/j/w/z):
-  • Multi-token gibberish: 2–12 token; skip nếu gib_cnt >= max(2, ceil(0.7*non_hint)) hoặc gib_ratio ≥ 0.75
-  • Token rất ngắn (≤2) KHÔNG có nguyên âm (kể cả có dấu) => rác; nếu ≥3 token như vậy trong câu => skip
-  • Nếu 1 token (≤3, không phải hint/sentiment) lặp ≥3 lần => skip
-  • Nếu sau khi loại hint/sentiment, không còn token có nguyên âm => skip (bag of noise)
-  • Giữ toàn bộ rule V2.6 & ưu tiên hint + short_sentiment
+V2.7-patched — Nới gate để tránh skip vô lý các review thật (e-commerce, mỹ phẩm…)
+  • Thêm nhận diện "review thật" sớm: có ≥2 từ nội dung (≥4 ký tự, có nguyên âm) + từ khóa e-commerce → KHÔNG skip
+  • Không skip nếu có cụm vận chuyển/đóng gói/thương hiệu/phẩm chất ("giao hàng", "đóng gói", "chính hãng", "mùi hương", "dưỡng ẩm"…)
+  • Hạ độ nhạy các rule gây oan: 
+      - repeated-short-token: cần ≥4 lần (trước đây 3) và token chiếm ≥60% tổng token
+      - many-very-short: cần ≥4 token (trước đây 3)
+      - too-short-words: chỉ áp dụng khi tok_cnt ≤3 (trước đây ≤4) và không có hint/lexicon
+      - multi-token-gibberish: nới ngưỡng và bỏ qua nếu có pos/neg signal hay cụm e-commerce
+  • Vẫn skip các chuỗi lặp vô nghĩa kiểu "hài lòng?" * 30, hoặc spam ký tự, hoặc tục tĩu
 """
 from __future__ import annotations
 
@@ -119,12 +122,23 @@ class ChatWindow(QtWidgets.QMainWindow):
         "ốp","op","miếng","dán","mieng","dan","áo","quần","giày","dép","ao","quan","giay","dep",
         # shorthands neutral
         "bt","bth",
+        # mỹ phẩm phổ thông
+        "son","môi","mui","mùi","dưỡng","duong","kem","lip","lipice","dhc","innisfree","cocoon"
     }
 
     # Short sentiment tokens (có & không dấu)
     _SHORT_POS = {"tốt","tot","ok","oke","oki","ổn","on","đẹp","dep","xịn","xin","ung","ưng"}
     _SHORT_NEG = {"tệ","te","xấu","xau","kém","kem","đắt","dat","phèn","phen","chan","chán","dở","dởm","lởm","dom","lom"}
     _SHORT_NEU = {"bt","bth"}
+
+    # E-commerce review keywords (whitelist)
+    _REVIEW_PHRASES = [
+        r"giao\s*hàng", r"đóng\s*gói", r"chính\s*hãng", r"đúng\s*mô\s*tả",
+        r"mùi\s*hương", r"thơm", r"dưỡng\s*ẩm", r"mịn\s*môi", r"lên\s*màu",
+        r"tem\s*chống\s*hàng\s*giả", r"shipper", r"giá\s*(tốt|ổn|ok|hợp\s*lý|rẻ)",
+        r"mua\s*lại|lần\s*2|lần\s*nữa", r"bao\s*bì|niêm\s*phong|seal",
+    ]
+    _REVIEW_RE = [re.compile(pat, re.IGNORECASE | re.UNICODE) for pat in _REVIEW_PHRASES]
 
     # Chữ cái
     _CONSONANTS = set(chr(c) for c in range(97,123)) - set("aeiouy"); _CONSONANTS.update(list("đ"))
@@ -275,7 +289,7 @@ class ChatWindow(QtWidgets.QMainWindow):
             m = re.search(rf"([a-z0-9]{{{k}}})\1+", s.lower())
             if m: return True
         return False
-    
+
     def _is_vowel_only_short(self, s: str) -> bool:
         s = s.strip(string.punctuation)
         if not s:
@@ -285,7 +299,6 @@ class ChatWindow(QtWidgets.QMainWindow):
             return False
         # True nếu tất cả là nguyên âm (kể cả có dấu)
         return all(ch in self._VI_VOWELS_ALL for ch in letters)
-
 
     def _norm_words(self, text: str):
         nod = (tp.strip_accents_simple(text) if tp else self._strip_diacritics_basic(text))
@@ -310,6 +323,29 @@ class ChatWindow(QtWidgets.QMainWindow):
 
     def _has_vi_vowel(self, s: str) -> bool:
         return any(ch.lower() in self._VI_VOWELS_ALL for ch in s)
+
+    def _contains_review_phrase(self, text: str) -> bool:
+        return any(p.search(text) for p in self._REVIEW_RE)
+
+    def _content_tokens(self, text: str) -> int:
+        words = re.findall(r"[A-Za-zÀ-ỹà-ỹ0-9]+", text, re.UNICODE)
+        cnt = 0
+        for w in words:
+            if len(w) >= 4 and self._has_vi_vowel(w) and not self._token_is_gibberish(w):
+                cnt += 1
+        return cnt
+
+    def _looks_like_real_review(self, text: str) -> bool:
+        # Có ít nhất 2 từ nội dung + cụm e-commerce phổ biến
+        if len(text) >= 15 and self._content_tokens(text) >= 2 and self._contains_review_phrase(text.lower()):
+            return True
+        # Hoặc có ≥3 câu ngắn cách nhau bằng dấu chấm, mỗi câu có từ ≥4 ký tự có nguyên âm
+        sentences = [s.strip() for s in re.split(r"[.!?]+", text) if s.strip()]
+        if len(sentences) >= 3:
+            good = sum(any(len(w) >= 4 and self._has_vi_vowel(w) for w in re.findall(r"\w+", s)) for s in sentences)
+            if good >= 2:
+                return True
+        return False
 
     def _token_is_gibberish(self, t: str) -> bool:
         if not t: return True
@@ -409,6 +445,10 @@ class ChatWindow(QtWidgets.QMainWindow):
         if self._is_tautology_like(t):
             return True, "tautology", "Câu lặp lại cùng một cụm (ví dụ: 'X như X'), không chứa nhận xét."
 
+        # ==== NEW: Nhận diện review thật sớm ====
+        if self._looks_like_real_review(t):
+            return False, "", ""
+
         # 1 token cực nhiễu
         if self._is_single_token_noise(t):
             return True, "single-token-gibberish", "Văn bản vô nghĩa: 1 từ không có nội dung đánh giá."
@@ -447,53 +487,50 @@ class ChatWindow(QtWidgets.QMainWindow):
         if non_hint2 and not any(self._has_vi_vowel(w) for w in non_hint2):
             return True, "no-vowel-nonhint", "Không có từ mang nguyên âm/ý nghĩa sau khi loại từ gợi ý."
 
-        # ===== Multi-token gibberish (mạnh tay hơn): 2–12 token =====
+        # ===== Multi-token gibberish (nới nhẹ): 2–12 token =====
         if 2 <= len(word_toks) <= 12:
             non_hint = [w for w in word_toks
                         if not (self._is_product_hint_token(w) or self._is_short_sentiment_token(w))]
             if non_hint:
-                gib_flags   = [self._token_is_gibberish(w) for w in non_hint]
+                gib_flags    = [self._token_is_gibberish(w) for w in non_hint]
                 filler_flags = [self._is_vowel_only_short(w) for w in non_hint]  # ví dụ: "oi", "ai", "ơi"
-                gib_cnt     = sum(gib_flags)
-                filler_cnt  = sum(filler_flags)
-                gib_ratio   = gib_cnt / max(1, len(non_hint))
+                gib_cnt      = sum(gib_flags)
+                filler_cnt   = sum(filler_flags)
+                gib_ratio    = gib_cnt / max(1, len(non_hint))
 
-                # Ngưỡng mới: 0.6 (≈ 2/3 khi có 3 token)
-                need = max(2, math.ceil(0.6 * len(non_hint)))
+                need = max(2, math.ceil(0.7 * len(non_hint)))  # trước 0.6 → tăng 0.7 để bớt nhạy
 
                 if (
-                    gib_cnt >= need                   # đủ số lượng rác theo ngưỡng 0.6
-                    or gib_ratio >= (2/3)             # hoặc tỉ lệ rác ≥ 2/3
-                    or (gib_cnt >= 2 and filler_cnt >= 1 and len(word_toks) <= 4)  # 2 rác + 1 filler ngắn
+                    (gib_cnt >= need or gib_ratio >= (3/4) or (gib_cnt >= 2 and filler_cnt >= 1 and len(word_toks) <= 4))
+                    and not self._contains_review_phrase(t.lower())
+                    and (pos_sig == 0 and neg_sig == 0)
                 ):
                     return True, "multi-token-gibberish", "Các từ chủ yếu vô nghĩa, không có nội dung đánh giá."
 
-
-        # Lặp hạt ngắn (≤3) ≥3 lần
+        # Lặp hạt ngắn (≤3) ≥4 lần *và* chiếm ≥60% token
         short_non_hint = [w.lower() for w in word_toks if (len(w) <= 3 and not self._is_product_hint_token(w) and not self._is_short_sentiment_token(w))]
         if short_non_hint:
             tok_most, n_most = Counter(short_non_hint).most_common(1)[0]
-            if n_most >= 3:
+            if n_most >= 4 and n_most >= 0.6 * max(1, len(word_toks)) and (pos_sig == 0 and neg_sig == 0):
                 return True, "repeated-short-token", "Lặp từ rất ngắn quá nhiều, thiếu nội dung."
 
-        # ≥3 token rất ngắn (≤2) không có nguyên âm
+        # ≥4 token rất ngắn (≤2) không có nguyên âm
         very_short_no_vowel = sum(1 for w in word_toks if len(w) <= 2 and not self._has_vi_vowel(w))
-        if very_short_no_vowel >= 3:
+        if very_short_no_vowel >= 4 and (pos_sig == 0 and neg_sig == 0):
             return True, "many-very-short", "Quá nhiều từ cực ngắn không có nguyên âm, thiếu nội dung."
 
-        # Repeated token ≥3 lần (tổng quát)
+        # Repeated token tổng quát: yêu cầu mạnh hơn
         if tok_cnt >= 3:
-            tok_most2, n_most2 = Counter(toks_c).most_common(1)[0]
-            if n_most2 >= 3 and (len(tok_most2) <= 6 or self._token_is_profanity(tok_most2)):
-                if pos_sig == 0 and neg_sig == 0:
-                    return True, "repeated-token", "Lặp một từ nhiều lần, thiếu nội dung."
+            tok_most2, n_most2 = Counter([w for w in re.findall(r"\w+", t.lower())]).most_common(1)[0]
+            if n_most2 >= 4 and (len(tok_most2) <= 6 or self._token_is_profanity(tok_most2)) and (pos_sig == 0 and neg_sig == 0):
+                return True, "repeated-token", "Lặp một từ nhiều lần, thiếu nội dung."
 
         # profanity-only / mostly profanity
         if (1 <= tok_cnt <= 6) and (prof_ratio >= 0.6) and pos_sig == 0 and neg_sig == 0:
             return True, "mostly-profanity", "Phần lớn từ ngữ là tục tĩu, thiếu nội dung đánh giá."
 
-        # Câu toàn từ rất ngắn
-        if tok_cnt <= 4 and avg_len <= 3 and pos_sig == 0 and neg_sig == 0:
+        # Câu toàn từ rất ngắn → chỉ khi rất ít từ
+        if tok_cnt <= 3 and avg_len <= 3 and pos_sig == 0 and neg_sig == 0 and not any(self._is_product_hint_token(w) for w in toks_c):
             return True, "too-short-words", "Các từ quá ngắn, không đủ ngữ cảnh."
 
         # Letters ratio thấp mà không có tín hiệu nội dung
@@ -572,7 +609,7 @@ class ChatWindow(QtWidgets.QMainWindow):
             label = "neutral"
             if m:
                 try:
-                    cand = str(json.loads(m.group(0)).get("label","")).strip().lower().replace(" ","_")
+                    cand = str(json.loads(m.group(0)).get("label","")).strip().lower().replace(" ", "_")
                     if cand in LABELS: label = cand
                 except Exception:
                     label = "neutral"

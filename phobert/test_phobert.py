@@ -9,7 +9,7 @@ from textproc import (
     approx_diacritic_ratio, restore_diacritics
 )
 
-ID2LBL = {i:l for i,l in enumerate(LABELS_5)}
+ID2LBL = {i: l for i, l in enumerate(LABELS_5)}
 
 def softmax(x):
     x = x - np.max(x, keepdims=True)
@@ -17,7 +17,7 @@ def softmax(x):
     return e / np.sum(e, keepdims=True)
 
 def main():
-    ap = argparse.ArgumentParser(description="Quick inference PhoBERT 5 lớp (no-guardrail).")
+    ap = argparse.ArgumentParser(description="Quick inference PhoBERT 5 lớp (CPU/GPU).")
     ap.add_argument("--model_dir", default="/home/dat/llm_ws/phobert/phobert_5cls_clean")
     ap.add_argument("--text", required=True)
     ap.add_argument("--max_len", type=int, default=160)
@@ -28,11 +28,35 @@ def main():
     ap.add_argument("--neutral_penalty", type=float, default=0.0)
     ap.add_argument("--no_prefix", action="store_true",
                     help="Tắt sentiment prefix ở infer (mặc định bật để khớp train).")
+    # NEW: ép device
+    ap.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto",
+                    help="Chọn thiết bị chạy: cpu / cuda / auto.")
+    # (tuỳ chọn) giới hạn thread CPU cho ổn định
+    ap.add_argument("--cpu_threads", type=int, default=0,
+                    help="Số thread CPU (0 = mặc định PyTorch).")
     args = ap.parse_args()
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    # Chọn device
+    if args.device == "cpu":
+        device = torch.device("cpu")
+    elif args.device == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError("Yêu cầu --device=cuda nhưng CUDA không khả dụng.")
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    if device.type == "cpu" and args.cpu_threads > 0:
+        torch.set_num_threads(args.cpu_threads)
+
+    # Luôn nạp model ở dtype float32; nếu CPU thì map_location='cpu'
+    load_kwargs = dict(torch_dtype=torch.float32, low_cpu_mem_usage=True)
+    if device.type == "cpu":
+        load_kwargs["device_map"] = {"": "cpu"}  # tránh tự map sang CUDA
     tok = AutoTokenizer.from_pretrained(args.model_dir, use_fast=False)
-    mdl = AutoModelForSequenceClassification.from_pretrained(args.model_dir).to(device).eval()
+    mdl = AutoModelForSequenceClassification.from_pretrained(
+        args.model_dir, **load_kwargs
+    ).to(device).eval()
 
     raw = args.text
     # 1) normalize
@@ -48,12 +72,16 @@ def main():
     # 4) segmentation (nếu dùng)
     s = maybe_segment(s, use_seg=args.use_seg)
 
-    with torch.no_grad():
-        enc = tok([s], truncation=True, padding=True, max_length=args.max_len, return_tensors="pt")
+    with torch.inference_mode():
+        enc = tok([s], truncation=True, padding=True,
+                  max_length=args.max_len, return_tensors="pt")
+        # chuyển tensor sang đúng device
         enc = {k: v.to(device) for k, v in enc.items()}
-        logits = mdl(**enc).logits.detach().cpu().numpy()[0]
+        logits = mdl(**enc).logits
+        # đưa về CPU để xử lý numpy
+        logits = logits.detach().cpu().numpy()[0]
 
-    # (tùy chọn) giảm neutral nếu muốn
+    # (tùy chọn) điều chỉnh neutral
     if args.neutral_penalty != 0.0:
         logits[2] += args.neutral_penalty  # 'neutral' index 2
 
@@ -61,6 +89,7 @@ def main():
     pred_id = int(probs.argmax())
     pred_lbl = ID2LBL[pred_id]
 
+    print(f"[INFO] Device: {device}")
     print("Text:", raw)
     print("Pred:", pred_lbl)
     print("Conf:", f"{float(probs[pred_id]):.6f}")

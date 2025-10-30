@@ -9,6 +9,8 @@ source ~/llm_ws/.venv/bin/activate
 
 3.10 for Phobert
 
+version = 3.10.18
+
 source ~/llm_ws/.venv310/bin/activate
 
 muốn test các code chạy môi trường python 3.10 thì cài pip các gói ở file requirement.txt
