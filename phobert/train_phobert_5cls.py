@@ -410,8 +410,8 @@ def main(args):
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--train_csv", default="/home/dat/llm_ws/data/train/vn_reviews_train_clean_5cls_diverse_v3.csv")
-    p.add_argument("--challenge_csv", default="/home/dat/llm_ws/data/test/vn_product_reviews_test_100_challenge.csv")
+    p.add_argument("--train_csv", default="/home/dat/llm_ws/data/train/train.csv")
+    p.add_argument("--challenge_csv", default="/home/dat/llm_ws/data/test/test.csv")
     p.add_argument("--output_dir", default="phobert_5cls_clean")
     p.add_argument("--model_name", default=None, help="vinai/phobert-base hoặc phobert-large")
     p.add_argument("--max_len", type=int, default=160)
