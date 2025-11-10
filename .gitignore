@@ -4,4 +4,5 @@ phobert_5cls_clean/
 phobert_5cls_clean_old/
 mt5/mt5_normalizer_v1
 mt5/mt5_normalizer_v2
+__pycache__/
 !.gitignore
