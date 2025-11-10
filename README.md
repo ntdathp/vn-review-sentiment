@@ -5,7 +5,7 @@ For Phobert python version 3.10.18
     cd nlp_learning
 
 <details>
-  <summary> Click here to expand</summary>
+  <summary> For virtual environment. Click here to expand</summary>
 
     # Install pyenv + build deps (Ubuntu/Debian)
     sudo apt update
