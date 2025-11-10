@@ -26,9 +26,8 @@ from textproc import (
 
 # ===== Model dir autodetect =====
 _DEF_CANDIDATES: List[str] = [
-    os.environ.get("PHOBERT_MODEL_DIR", ""),                 # ENV override nếu muốn
+    os.environ.get("PHOBERT_MODEL_DIR", ""),     
     "/home/dat/llm_ws/phobert/phobert_5cls_clean",           # path 1
-    "/home/dat/llm_ws/phobert_5cls_clean",                   # path 2
 ]
 MODEL_DIR_PHOBERT = next((p for p in _DEF_CANDIDATES if p and os.path.isdir(p)), "")
 

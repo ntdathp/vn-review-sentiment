@@ -231,7 +231,7 @@ class ChatWindow(QtWidgets.QMainWindow):
         self._active_threads: list[QtCore.QThread] = []
 
         # Auto-load model module
-        mod_name = os.environ.get("CHAT_TOOLBOX_PHOBERT_MODULE", "my_phobert_only")
+        mod_name = os.environ.get("CHAT_TOOLBOX_PHOBERT_MODULE", "my_phobert_only_cpu")
         try:
             self.model.load_from_module_name(mod_name)
         except Exception as e:
