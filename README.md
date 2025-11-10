@@ -7,7 +7,7 @@ pip install -r requirements.txt
 # Test Phobert
 
 Change the path to trained model in my_phobert_only_cpu.py or my_phobert_only.py. To run on cpu or gpu respectively.
-Download trained model [here](https://drive.google.com/drive/folders/1VI1AyaTUFOaKDCyZbS8mfxUguh9thrt9?usp=sharing).
+Download trained model [here](https://drive.google.com/drive/folders/1VI1AyaTUFOaKDCyZbS8mfxUguh9thrt9?usp=sharing). Remember to extract zip file.
 
 ```python
 _DEF_CANDIDATES: List[str] = [
