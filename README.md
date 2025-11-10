@@ -1,4 +1,4 @@
-# Virtual environment
+# Environment
 For Phobert python version 3.10.18
 
     git clone git@github.com:ntdathp/nlp_learning.git
