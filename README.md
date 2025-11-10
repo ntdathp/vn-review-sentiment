@@ -1,6 +1,40 @@
 # Virtual environment
 For Phobert python version 3.10.18
 
+    git clone git@github.com:ntdathp/nlp_learning.git
+    cd nlp_learning
+
+<details>
+  <summary> Click here to expand</summary>
+
+    # Install pyenv + build deps (Ubuntu/Debian)
+    sudo apt update
+    sudo apt install -y build-essential libssl-dev zlib1g-dev \
+    libbz2-dev libreadline-dev libsqlite3-dev curl llvm \
+    libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
+    libffi-dev liblzma-dev
+    curl https://pyenv.run | bash
+    
+    # Add pyenv to shell
+    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+    echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+    echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+    exec $SHELL  # hoặc: source ~/.bashrc
+    
+    # Install Python 3.10.18
+    pyenv install 3.10.18
+    pyenv local 3.10.18     
+    python -V                # check Python 3.10.18
+
+    # Create and activate venv
+    python -m venv .venv310
+    source .venv310/bin/activate
+    python -V  # 3.10.18
+    pip install --upgrade pip setuptools whee
+    
+</details>
+
+
 ```
 pip install -r requirements.txt
 ```
