@@ -61,7 +61,7 @@ mod_name = os.environ.get("CHAT_TOOLBOX_PHOBERT_MODULE", "my_phobert_only_cpu")
 
 Finally run the GUI.
 ```
-cd pip phobert
+cd phobert
 python chat_toolbox.py
 ```
 
