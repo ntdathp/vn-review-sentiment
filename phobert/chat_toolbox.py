@@ -185,8 +185,8 @@ class ChatWindow(QtWidgets.QMainWindow):
         llm_layout = QtWidgets.QHBoxLayout(self.llm_opts); llm_layout.setContentsMargins(0,0,0,0); llm_layout.setSpacing(6)
         self.lbl_llm_model = QtWidgets.QLabel("Model:")
         self.cmb_llm_model = QtWidgets.QComboBox(); self.cmb_llm_model.setEditable(True)
-        self.cmb_llm_model.addItems(["qwen2.5:14b-instruct","qwen2.5:7b-instruct","llama3.1:8b-instruct","gemma2:9b-instruct","phi3:mini"])
-        self.cmb_llm_model.setCurrentText("qwen2.5:14b-instruct"); self.cmb_llm_model.setMinimumWidth(180)
+        self.cmb_llm_model.addItems(["qwen3:8b","qwen2.5:7b-instruct","qwen2.5:14b-instruct"])
+        self.cmb_llm_model.setCurrentText("qwen3:8b"); self.cmb_llm_model.setMinimumWidth(180)
         self.lbl_llm_url = QtWidgets.QLabel("URL:")
         self.txt_llm_url = QtWidgets.QLineEdit("http://localhost:11434/api/generate")
         self.txt_llm_url.setMinimumWidth(260); self.txt_llm_url.setPlaceholderText("http://<host>:<port>/api/generate")
@@ -589,32 +589,111 @@ class ChatWindow(QtWidgets.QMainWindow):
             self.llm_opts.hide()
 
     # ---------- LLM HTTP classify ----------
+    # ---------- LLM HTTP classify ----------
     def _classify_llm_runner(self, url: str, model: str) -> Callable[[str], str]:
-        LABELS = {"very_positive","positive","neutral","negative","very_negative"}
+        LABELS = {"very_positive", "positive", "neutral", "negative", "very_negative"}
+
+        def _normalize_str(s: str) -> str:
+            s = unicodedata.normalize("NFKC", s)
+            return s.strip().lower()
+
+        # alias để bắt mấy kiểu viết khác / tiếng Việt
+        alias_map = {
+            "very positive": "very_positive",
+            "verypositive": "very_positive",
+            "rất tốt": "very_positive",
+            "tuyệt vời": "very_positive",
+
+            "positive": "positive",
+            "tốt": "positive",
+            "good": "positive",
+
+            "neutral": "neutral",
+            "trung tính": "neutral",
+            "bình thường": "neutral",
+            "binh thuong": "neutral",
+            "ổn": "neutral",
+            "on": "neutral",
+
+            "negative": "negative",
+            "negativ": "negative",
+            "xấu": "negative",
+            "bad": "negative",
+
+            "very negative": "very_negative",
+            "verynegative": "very_negative",
+            "rất tệ": "very_negative",
+            "kinh khủng": "very_negative",
+            "tồi tệ": "very_negative",
+        }
+
+        def _extract_label(raw: str) -> str:
+            """Cố lấy ra 1 nhãn trong LABELS từ chuỗi model trả về."""
+            if not raw:
+                return "neutral"
+            s = _normalize_str(raw)
+
+            # 1) nếu trong string có trực tiếp nhãn chuẩn
+            for lab in LABELS:
+                if lab in s:
+                    return lab
+
+            # 2) nếu match alias (tiếng Việt / viết thường)
+            for key, lab in alias_map.items():
+                if key in s:
+                    return lab
+
+            # 3) tách token chữ cái / underscore, thử từng token
+            tokens = re.findall(r"[a-z_]+", s)
+            for tok in tokens:
+                t = _normalize_str(tok).replace("-", "_").strip("._ ")
+                if t in alias_map:
+                    return alias_map[t]
+                if t in LABELS:
+                    return t
+
+            # bó tay thì cho neutral
+            return "neutral"
+
         SYSTEM_PROMPT = (
-            "Bạn là bộ phân loại cảm xúc tiếng Việt.\n"
-            "Chỉ trả lời đúng MỘT JSON duy nhất dạng: {\"label\":\"<một trong 5 nhãn>\"}\n"
-            "Năm nhãn hợp lệ: very_positive, positive, neutral, negative, very_negative.\n"
-            "Không giải thích, không thêm chữ nào ngoài JSON."
+            "Bạn là bộ phân loại cảm xúc bình luận sản phẩm tiếng Việt.\n"
+            "Nhãn hợp lệ: very_positive, positive, neutral, negative, very_negative.\n\n"
+            "Nhiệm vụ:\n"
+            "- Đọc bình luận sản phẩm.\n"
+            "- Chọn MỘT nhãn duy nhất thể hiện cảm xúc tổng thể.\n"
+            "- CHỈ trả về đúng MỘT từ trong các từ sau (không thêm bất kỳ chữ nào khác):\n"
+            "very_positive\npositive\nneutral\nnegative\nvery_negative\n"
         )
+
         def _runner(text: str) -> str:
             if requests is None:
                 raise RuntimeError("Thiếu thư viện 'requests'. Hãy cài: pip install requests")
-            prompt = f"<|system|>\n{SYSTEM_PROMPT}\n<|user|>\nPhân loại câu sau:\n\"{text}\"\nJSON:"
-            payload = {"model": model, "prompt": prompt, "stream": False, "keep_alive": 0,
-                       "options": {"temperature": 0, "top_p": 1, "seed": 42, "num_ctx": 2048}}
-            r = requests.post(url, json=payload, timeout=120); r.raise_for_status()
+
+            prompt = f"{SYSTEM_PROMPT}\n\nBình luận: \"{text}\"\nNhãn:"
+
+            payload = {
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                # 👇 infer xong là unload model khỏi RAM/GPU
+                "keep_alive": 0,
+                "options": {
+                    "temperature": 0,
+                    "top_p": 1,
+                    "seed": 42,
+                    "num_ctx": 2048,
+                },
+            }
+
+            r = requests.post(url, json=payload, timeout=120)
+            r.raise_for_status()
             out = r.json().get("response", "").strip()
-            m = re.search(r"\{.*\}", out, flags=re.DOTALL)
-            label = "neutral"
-            if m:
-                try:
-                    cand = str(json.loads(m.group(0)).get("label","")).strip().lower().replace(" ", "_")
-                    if cand in LABELS: label = cand
-                except Exception:
-                    label = "neutral"
+
+            label = _extract_label(out)
             return f"LLM label: {label}"
+
         return _runner
+
 
     # ---------- Clear chat ----------
     def on_clear_chat(self):

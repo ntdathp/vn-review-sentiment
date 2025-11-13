@@ -1,9 +1,8 @@
 # Ignore all hidden files and folders
 .*
 phobert_5cls_clean/
-phobert_5cls_clean_old/
-mt5/mt5_normalizer_v1
-mt5/mt5_normalizer_v2
+tfidf_baseline.joblib
+bilstm_vn_sentiment_5cls/
 __pycache__/
 *.zip
 !.gitignore

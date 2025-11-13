@@ -11,8 +11,22 @@ from sklearn.utils.class_weight import compute_class_weight
 from joblib import dump
 
 # --------- Load data ----------
-df = pd.read_csv("/home/dat/llm_ws/data/train/vn_product_reviews_5sentiments_10k_v2_clean.csv")  # hoặc file synthetic bạn đã tạo
-df = df.dropna(subset=["text","label"])
+df = pd.read_csv("/home/dat/llm_ws/data/train/train.csv")
+df = df.dropna(subset=["text", "label"])
+
+# --------- Bỏ các class có quá ít mẫu (ví dụ < 10) ----------
+label_counts = df["label"].value_counts()
+min_count = 10  # bạn chỉnh ngưỡng ở đây nếu muốn
+
+valid_labels = label_counts[label_counts >= min_count].index
+df = df[df["label"].isin(valid_labels)].copy()
+
+print("Giữ lại các nhãn:")
+print(label_counts[label_counts >= min_count])
+print("\nLoại bỏ các nhãn (ít hơn", min_count, "mẫu):")
+print(label_counts[label_counts < min_count])
+
+# --------- Chuẩn bị X, y ----------
 X = df["text"].astype(str).tolist()
 y = df["label"].astype(str).tolist()
 
@@ -21,23 +35,20 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42, stratify=y
 )
 
-# --------- Class weights (nếu lệch lớp) ----------
+# --------- Class weights ----------
 classes = np.unique(y_train)
 class_weights = compute_class_weight("balanced", classes=classes, y=y_train)
-cw_map = {c:w for c,w in zip(classes, class_weights)}
+cw_map = {c: w for c, w in zip(classes, class_weights)}
+print("\nClass weights:", cw_map)
 
 # --------- Pipeline TF-IDF + (model) ----------
-# Không dùng analyzer callable => ngram_range hoạt động bình thường
 pipe = Pipeline([
     ("tfidf", TfidfVectorizer(
         analyzer="word",
         lowercase=True,
-        ngram_range=(1,2),
+        ngram_range=(1, 2),
         min_df=2,
-        # token_pattern mặc định bỏ từ 1 ký tự; dùng pattern dưới để giữ cả 1 ký tự & Unicode
         token_pattern=r"(?u)\b\w+\b",
-        # strip_accents giúp chuẩn hoá dấu nếu cần:
-        # strip_accents="unicode",
     )),
     ("clf", LogisticRegression(max_iter=2000))  # placeholder, sẽ set qua GridSearch
 ])
@@ -48,15 +59,14 @@ param_grid = [
         "clf": [LogisticRegression(max_iter=2000, class_weight=cw_map, solver="liblinear")],
         "tfidf__max_df": [0.9, 1.0],
         "tfidf__sublinear_tf": [True, False],
-        "clf__C": [0.5, 1.0, 2.0]
+        "clf__C": [0.5, 1.0, 2.0],
     },
     {
         "clf": [LinearSVC(class_weight=cw_map, max_iter=5000)],
         "tfidf__max_df": [0.9, 1.0],
         "tfidf__sublinear_tf": [True, False],
-        "clf__C": [0.5, 1.0, 2.0]
-        # Với LinearSVC mới, có thể thêm "clf__dual": ["auto", True] nếu muốn
-    }
+        "clf__C": [0.5, 1.0, 2.0],
+    },
 ]
 
 gs = GridSearchCV(
@@ -76,6 +86,8 @@ print("Best CV score (f1_macro):", gs.best_score_)
 y_pred = gs.predict(X_test)
 print("\nClassification report:")
 print(classification_report(y_test, y_pred, digits=4))
+
+# dùng đúng thứ tự class xuất hiện trong train
 print("\nConfusion matrix:")
 print(confusion_matrix(y_test, y_pred, labels=classes))
 
