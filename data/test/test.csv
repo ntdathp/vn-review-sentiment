@@ -49,7 +49,7 @@ text,label
 "tai nghe bực mình vl, giao hàng lâu.",very_negative
 "laptop hỏng ngay lần 1, giao hàng lâu.",very_negative
 "dong ho không nổi bật, giá hợp lý.",neutral
-"Mình thấy dien thoai không đáng tiền, chất lượng chưa ổn.",negative
+"Mình thấy dien thoai không đáng tiền, chất lượng chưa ổn.",very_negative
 "may anh đúng như mô tả, giá ko quá cao.",neutral
 "Mình thấy dien thoai shop lầy, chất lượng chưa ổn.",negative
 "Mình thấy sac du phong pin tụt lẹ, chất lượng chưa ổn.",negative
@@ -76,11 +76,11 @@ text,label
 "chuot thảm họa 😱, giao hàng kẹt mãi.",very_negative
 "Sản phẩm chuot quá okeee, dùng khá ok.",positive
 "tai nghe tạm dc, giá ko quá cao.",neutral
-"Mình thấy robot hut bui không đáng tiền, chất lượng chưa ổn.",negative
+"Mình thấy robot hut bui không đáng tiền, chất lượng chưa ổn.",very_negative
 "chuot không có gì đặc biệt, giá ko quá cao.",neutral
 "Sản phẩm tai nghe ngon lành cành đào, dùng khá ok.",positive
 "man hinh best of best, mãi đỉnh.",very_positive
-"Mình thấy chuot không đáng tiền, chất lượng chưa ổn.",negative
+"Mình thấy chuot không đáng tiền, chất lượng chưa ổn.",very_negative
 "Mình thấy dien thoai fail toàn tập, chất lượng chưa ổn.",negative
 "robot hut bui cực phẩm luôn, quá yêu.",very_positive
 "Sản phẩm dong ho mượt mà 10/10, dùng khá ok.",positive
@@ -100,26 +100,26 @@ text,label
 "Mình thấy dong ho pin tụt lẹ, chất lượng chưa ổn.",negative
 "Sản phẩm tai nghe best choice, dùng khá ok.",positive
 "Thích nhất là cái kính dẻo. Cái nón trầy trong ảnh là cái đầu tiên mình đội, mặc dù bị cày xuống đường trong một vụ tai nạn nhưng phần đầu, mặt mình được bảo vệ an toàn ko một vết xướt, phần kính nón bị va đập mạnh trượt trên mặt đường nhưng ko vỡ.""",very_positive
-Sản phẩm không đúng hình ảnh quảng cáo,very_negative
+Sản phẩm không đúng hình ảnh quảng cáo,negative
 """Giao nhanh, đẹp""",very_positive
-"""Chậm chạp, tư vấn ko nhiệt tình""",very_negative
+"""Chậm chạp, tư vấn ko nhiệt tình""",negative
 """Shop giao hàng khá là nhanh, đóng gói rất là kĩ, sản phẩm như mô tả. 6 ngày mới nhận được hàng thì so ra lâu quá""",very_positive
 """Quá tốt,so với mong đợi""",very_positive
-Giao nhanh . Mũ đẹp,very_positive
+"Giao rat nhanh . Mũ rat đẹp",very_positive
 Ok lắm mn,very_positive
 """Tiki dóng sách rất ưng ý, sách chất lượng""",very_positive
 Sách oklela Tiêu đề ấn tượng!,very_positive
-"Theo cá nhân mình đánh giá sách 6/10. Mình chỉ thấy một ít chỗ là hay, đáng lưu tâm. còn lại thì viết Nội dung hơi khó khăn cho người đọc, giải thích lòng vòng, ngoài ra còn viết sai chính tả khá nhiều. Đối với mình, là người mới, đang tập tành thói quen đọc sách, thì mình thấy quyển sách này không phù hợp lắm mặc dù đã cố gắng đọc tới 8 phần 10 cuốn sách rồi vẫn thấy khó thấm nội dung.""",very_negative
-"""Bọc sách không vừa, dẫn đến ép bị bung, bọc không vừa với khổ bìa nên bị kéo cong""",negative
+"Theo cá nhân mình đánh giá sách 6/10. Mình chỉ thấy một ít chỗ là hay, đáng lưu tâm. còn lại thì viết Nội dung hơi khó khăn cho người đọc, giải thích lòng vòng, ngoài ra còn viết sai chính tả khá nhiều. Đối với mình, là người mới, đang tập tành thói quen đọc sách, thì mình thấy quyển sách này không phù hợp lắm mặc dù đã cố gắng đọc tới 8 phần 10 cuốn sách rồi vẫn thấy khó thấm nội dung.""",negative
+"""Bọc sách không vừa, dẫn đến ép bị bung, bọc không vừa với khổ bìa nên bị kéo cong. Minh kha that vong.""",negative
 """Sách tốt, tuy có đóng trong bao bóng xốp nhưng chỉ có 1 lớp nên vẫn bị cọ xát và nhăn 1 chút ở gáy sách. Nên quấn thêm 1 lớp thì tốt hơn.""",positive
 """Nội dung không quá mới so với những cuốn sách khác về tư duy phản biện và kích thích sáng tạo, nhưng sách cũng khá hay.""",positive
 Sách dở… đừng mua… viết luyên thuyên,very_negative
-Sách giả chất lượng in kém,very_negative
+Sách giả chất lượng in kém,negative
 Mình được bạn giới thiệu nên đã cân nhắc và mua ngay trên Tiki. Đóng gói đẹp và cẩn thận. Mình sẽ tiếp tục ủng hộ.,very_positive
 """Đóng gói ok. Chất lượng OK. Nội dung ko hay lắm""",positive
 cực hài lòng. giao sớm hơn dự kiến. sách chất lượng tốt,very_positive
-"""Sách hay,bìa đẹp,giao hàng nhanh gói cẩn thận nói chung là ukie ?""",very_positive
-Cách viết của tác giả theo mình thấy có hơi rườm rà. Nhưng cuốn sách vẫn đảm bảo mang đến cho bạn những gì nó đã hứa,very_positive
+"""Sách rat hay,bìa that su qua đẹp,giao hàng nhanh va gói cẩn thận, nói chung là rat ukie ?""",very_positive
+Cách viết của tác giả theo mình thấy có hơi rườm rà. Nhưng cuốn sách vẫn đảm bảo mang đến cho bạn những gì nó đã hứa,negative
 """- Noi Dung: ngan ngon, suc tich, de hieu -Tiki: giao hang nhanh""",very_positive
 Giao hàng nhanh đóng gói kĩ,positive
 """Lúc mới nhận sách về cảm quan thấy  không ổn, ví dụ như chữ trên bìa sách hơi lệch, các trang dính vào nhau và hơi mờ nên đã thử check mã vạch trên tem dán ở bìa sau. Kết quả ra 1 cuốn sách khác. Trước đây tiki có giao những cuốn sách cũ, sách in chất lượng kém giống như in lậu nhưng mình không review, lần này thấy lạ nên đề nghị các bạn giải thích. Về nội dung thì đây là cuốn sách hay, nếu cho 1 sao thì mọi người sẽ nghĩ rằng sách dở nên mình vẫn đánh giá 5 sao nhưng tiki cần xem lại đối tác, nguồn gốc sản phẩm.""",negative
@@ -138,13 +138,13 @@ Rat tot,very_positive
 Giao hàng ko giống hình ảnh. Tai phone lỗi,very_negative
 """chất lượng thun tốt, shop giao hàng nhanh""",very_positive
 """Nhận sản phẩm mà thật sự tức giận. Vải thì mỏng dánh. Màu trắng thì đen thui, dính màu vào. Sản phẩm này mà giặt chỉ có vứt vào thùng rác vì màu đen lem vào màu trắng. Đề nghị tiki xem lại các nhà phân phối hợp tác. Làm sao để đổi trả lại vì sản phẩm lem màu""",very_negative
-Sản phẩm giặt ra màu. Giặt lần 3 là màu đen thành bạc và màu trắng thành màu xám,very_negative
+Sản phẩm giặt ra màu. Giặt lần 3 là màu đen thành bạc và màu trắng thành màu xám,negative
 """chất lượng quá kém. không xứng đáng với giá bán, quần áo quá cũ.""",very_negative
 đồ đẹp giống như trong hình ảnh rất hài lòng mong bs shop luôn giữ uy tín nghe và mình sẽ luôn ủng hộ,very_positive
 """tệ,không vừa,khác với hình quảng cáo""",very_negative
-Vai kg đẹp so với Quang cao,negative
+"Vai kg đẹp so với Quang cao. That vong khi mua sp nay.",negative
 """Vải bị ra màu,giặt lem hết trơn""",negative
-vải hơi mỏng,negative
+"vải hơi mỏng. Khong oke nhu quang cao. Hoi phi tien.",negative
 do đep y hinh,very_positive
 Dùng chưa được 1 tháng đã hỏng.,very_negative
 """Kết nối nhanh,tốt. Giao hàng cực nhanh 5 sao""",very_positive
@@ -166,7 +166,7 @@ Hàng thực tế khác với hình ảnh,very_negative
 """không như kỳ vọng, chỉ được mỗi cái quét bàn phím thì tạm được""",neutral
 Dùng ổn. Có điều mấy miếng bông sau khi dùng bị bẩn không biết làm sạch như thế nào.,positive
 """Dùng ổn, gọn nhẹ , tiện mang theo""",positive
-Rất hài lòng với sản phẩm.,very_positive
+"Sản phẩm tuyệt vời. Rất hài lòng với sản phẩm. Sẽ quay lại ủng hộ shop <3!!",very_positive
 """da đẹp, rất hài lòng với sp này, đáng đồng tiền bát gạo""",very_positive
 """Túi đểu. Ko phải da thật, lởm lắm.""",very_negative
 """Túi đẹp, như hình shop đăng, không biết sp có bền không nhưng mình vẫn đánh giá trước 5 sao""",very_positive
@@ -180,26 +180,26 @@ Rất hài lòng. Sp đẹp.,positive
 """mua 4 usb bị 1 cái hư, chat với nhà bán hàng không thấy trả lời, mong ứng dụng mua hàng TIKI đổi lại giùm.""",very_negative
 GIao hàng nhanh. Giá phù hợp. Độ bền chắc phải thời gian mới trả lời,very_positive
 """mới nhận hàng, xài thử thấy cũng ok... chưa biết độ bền ra sao...""",positive
-Giao nhanh hàng đúng yêu cầu có điều đã đc bóc ra như z nè,neutral
+"Giao nhanh hàng đúng nhu yêu cầu, có điều đã đc bóc ra san. San pham xai cung oke.",positive
 """Hàng giao đúng hẹn. Bước đầu xài tốt, chưa gặp vấn đề gì.""",positive
-"""Hàng nhỏ nhẹ nhưng làm hộp to bự luôn, nếu được có thể cho vào vài ba chục chiếc . TIKI nên tôn trọng khách hàng khi đóng hàng theo combo 5 đến 10 chiếc một. Như thế này mua nhiều chét tiền vận chuyển! Sản phẩm dùng được!""",neutral
-Yêu cầu xuất hoá đơn mà vẫn chưa nhận được hoá đơn ạ?,negative
+"""Hàng nhỏ nhẹ nhưng làm hộp to bự luôn, nếu được có thể cho vào vài ba chục chiếc . TIKI nên tôn trọng khách hàng khi đóng hàng theo combo 5 đến 10 chiếc một. Như thế này mua nhiều ton tiền vận chuyển! Sản phẩm ở mức tạm tạm thôi!""",neutral
+"Yêu cầu xuất hoá đơn mà vẫn chưa nhận được hoá đơn ạ?",very_negative
 """Giao hàng nhanh, chất lượng đảm bảo""",very_positive
 """Sp tốt, giao hàng nhanh.""",very_positive
 Tiện dụng hiệu quả,positive
 Ko ra cái gì tẩy ố ko sạch,very_negative
 Dùng đc,very_positive
-"""Giao hàng đúng hẹn, 1 viên không làm sạch máy rửa chén như chai vệ sinh máy.""",positive
+"""Giao hàng đúng hẹn, 1 viên không làm sạch máy rửa chén như chai vệ sinh máy. Nhưng tóm lại vẫn là 1 sản phẩm tốt. Chất lượng đúng với giá tiền.""",positive
 giá bán quá đắt. Hôm qua tình cờ vào trang chuyên sản phẩm cho máy rửa chén thì giá có 135 ngàn free ship. vậy mà mình mua tính cả phí ship là 159 ngàn. tính ra đắt hơn 26 ngàn. như vậy sản phẩm đắt hơn ngoài thị trường rất nhiều. từ nay đặt hàng ở tiki phải khảo giá trước. thất vọng,very_negative
 Sản phẩm hết hạn sử dụng hay sao?,very_negative
-"""3 viên vệ sinh máy, năm in trên bao bì là 2020, vì bất đồng ngôn ngữ nên ko rõ được ngày sản xuất hay ngày hết hạn. Nhưng bây giờ là 2022 rồi, nên cho 3 sao!""",negative
+"""3 viên vệ sinh máy, năm in trên bao bì là 2020, vì bất đồng ngôn ngữ nên ko rõ được ngày sản xuất hay ngày hết hạn. Nhưng bây giờ là 2022 rồi, nên thất vọng vì cách làm ăn của shop!""",negative
 """hàng nhận được không phải như đặt, chất lượng không xác định được, bao gói không đúng như là hàng giả, không có chữ hướng dẫn nào bằng tiếng anh.""",very_negative
 """Rửa sạch tốt, k bám mùi""",very_positive
 """Giao hàng nhanh, sản phẩm giống mô tả, ko biết cho vào rửa có sạch được máy như quảng cáo ko, thấy quảng cáo tẩy sạch lắm""",positive
 """Giao hàng đúng hẹn, 1 viên không làm sạch máy rửa chén như chai vệ sinh máy.""",negative
 giá bán quá đắt. Hôm qua tình cờ vào trang chuyên sản phẩm cho máy rửa chén thì giá có 135 ngàn free ship. vậy mà mình mua tính cả phí ship là 159 ngàn. tính ra đắt hơn 26 ngàn. như vậy sản phẩm đắt hơn ngoài thị trường rất nhiều. từ nay đặt hàng ở tiki phải khảo giá trước. thất vọng,very_negative
-Sản phẩm hết hạn sử dụng hay sao?,very_negative
-"""3 viên vệ sinh máy, năm in trên bao bì là 2020, vì bất đồng ngôn ngữ nên ko rõ được ngày sản xuất hay ngày hết hạn. Nhưng bây giờ là 2022 rồi, nên cho 3 sao!""",negative
+Sản phẩm hết hạn sử dụng hay sao?,negative
+"""3 viên vệ sinh máy, năm in trên bao bì là 2020, vì bất đồng ngôn ngữ nên ko rõ được ngày sản xuất hay ngày hết hạn. Nhưng bây giờ là 2022 rồi, nên hơi that vong""",very_negative
 """hàng nhận được không phải như đặt, chất lượng không xác định được, bao gói không đúng như là hàng giả, không có chữ hướng dẫn nào bằng tiếng anh.""",very_negative
 """Rửa sạch tốt, k bám mùi""",very_positive
 """Sp dùng tốt, hài lòng, khử hết mùi hôi trong máy rửa bát""",positive
@@ -234,24 +234,24 @@ Khá ok,neutral
 "xài được 2 tháng có dấu hiệu đơ nút, dù mình xài rất bình thương, chỉ sử dụng 4-6h/ngày. Thất vọng",very_negative
 "Êm, mượt. Cần thêm mút 2 đầu để đi chuyển an toàn hơn khi đóng gói",positive
 "Sản phẩm tốt,nên mua",positive
-"Cảm nhận đầu tiên là sản phẩm có mùi tràm trà (gần giống mùi dầu gió), chất của sản phẩm quá lỏng, sử dụng hao.'",negative
+"Cảm nhận đầu tiên là sản phẩm có mùi tràm trà (gần giống mùi dầu gió), chất của sản phẩm quá lỏng, sử dụng hao.'",very_negative
 Công dụng giảm mụn giảm thâm ko rõ ràng. Khả năng kiềm dầu tốt. Có thể làm cho da bị kích ứng đối với da nhạy cảm ko phù hợp với thành phần tràm trà,negative
 Nếu mua lại ko? Thì ko nên mua lại.,very_negative
 "mình dùng được 1 thời gian rồi, khá ổn nhé, da mặt mình vốn là da hỗn hợp thiên dầu nên dùng để hạn chế mụn viêm nhiễm, nhưng mụn cám thì chắc phải xài tẩy TBC và lấy nhân mụn thường xuyên. anyway ủng hộ hàng Việt Nam",very_positive
 "Đóng gói cẩn thận, hàng lại rẻ hơn mua trực tiếp từ Cocoon. Sẽ ủng hộ dài nếu sử dụng ok.",very_positive
 rất hài lòng,positive
 "thiết kế đẹp, chắc chắn trông đẹp sang lắm nha shop, hàng chính hãng rexmax, giao hàng nhanh lần sau lại ủng hộ shop nhé",very_positive
-"Mình mua đúng đợt giảm giá, sản phẩm được mình bỏ vào giỏ hàng bấy lâu nay giờ cũng cầm được trên tay rồi",neutral
+"Mình mua đúng đợt giảm giá, sản phẩm được mình bỏ vào giỏ hàng bấy lâu nay giờ cũng cầm được trên tay rồi. sản phẩm xài tạm được thôi",neutral
 "Nồi lẩu đẹp, nhưng cao hơn tưởng tượng, ngồi bàn ăn hơi cao. Vung thiết kế hơi khó hiểu, nhưng ăn lẩu mình ít khi dùng vung nên cũng ok. Nồi lẩu này mình thấy tiện hơn nhiều so với bếp từ thông thường",very_positive
 "Trời mưa tự nhiên thèm lẩu mà nhớ chưa có nồi. Lướt tiki đặt mua lúc chiều thì trưa hôm sau đã có. Nồi đẹp. Đóng gói rất cẩn thận. Shipper vui vẻ , nhiệt tình. Nấu mà cả nhà đều khen. Sẽ quay lại ủng hộ shop thêm những sản phẩm cần. Ảnh mang tính chất minh hoạ vì làm biếng chụp",very_positive
 "Nồi rất to phù hợp đại gđ. đóng gói thì tạm. Mẫu mã đẹp. Nồi sôi nhanh, tỏa nhiệt đều, có chế độ tự ngắt khi đủ nhiệt. rất an toàn.  Sp tốt, nên mua",very_positive
-"Nhận hàng thấy ok, chưa xài nên chưa biết chất lượng thế nào",neutral
+"Nhận hàng thấy ok nhưng chưa xài nên chưa biết chất lượng thế nào. Nên đánh giá tạm được thjôi",neutral
 "nồi chính hãng,đẹp chất lượng.tki đóng gói kỹ chắc chắn giao hàng đúng hạn.sẽ tiếp tục ủng hộ",very_positive
 "Kiểu dáng gọn, lòng nồi tách rời với bếp nên dễ vệ sinh.  Nồi mới đun thử mất 10p để sôi nước, nước sôi mạnh, khi sôi có mùi sơn chống dính bốc lên (ko biết lúc cọ sạch có hết mùi ko)",very_positive
 "Mình mua giá sales 309k, nói chung cũng khá hài lòng, tiền nào của nấy.",positive
 "Phát khùng với cái nồi ạ. Bộ đinh ốc đi theo cái nắp nồi không phải cùng bộ với cái nồi . Vặn vào rất chật, xộc xệch và lọc cọc. Con ốc to nên ko có cố ráng vặn vào cái lỗ trên miếng nhựa đc ,nhựa rất giòn sợ gãy. 2 cái miếng để cố định con ốc thì quá nhỏ so với cái lỗ khoét trên nắp. Lọc cọc không có tác dụng gì cả. Cố xài chắc chịu đựng lọc cọc nhấc lên xuống 10 lần là gãy luôn. Rất không hài lòng cái nắp nên e muốn trả lại . Còn nồi 3lit này thì trông to hơn tưởng tượng, chất liệu nhìn tốt và cứng cáp. Mong cho e trả sản phẩm. Gần nửa triệu cho khoảng 10 lần sử dụng thì thôi ạ !",very_negative
 "nồi y hình, sài rất tốt luôn. Có cái quai bằng nhựa là mình hong thích lắm không có đồ vặn ốc nên cứ lỏng lỏng cũng sợ bị rơi ra, thích cái kiểu tròn tròn ở giữa nắp thì tiện hơn nè.",very_positive
-"Chưa dùng chưa biết khi nào dùng đánh giá sau, nhưng nhìn sp OK đẹp á. Vì gửi về nhà để bố mẹ dùng nên cho ý kiến sau nhé",neutral
+"Chưa dùng chưa biết khi nào dùng đánh giá sau. Vì gửi về nhà để bố mẹ dùng nên cho ý kiến sau nhé",neutral
 "Tốt, giao nhanh",very_positive
 "Tiki giao hàng thần tốc, chưa đầy 2 tiếng là có hàng về nhà ngay",very_positive
 "Thử luôn nồi lẩu bò nấm thì thấy nồi chạy ngon, nhanh sôi, không có mùi khét nhựa gì cả. Nói chung ổn.",positive
@@ -294,19 +294,19 @@ Lần đầu tiên sử dụng sản phẩm của Hadalabo rất có thiện c�
 "Shipper giao hàng nhiệt tình, tình trạng hàng hoá tốt. 5*",very_positive
 "Đặt kem đã từng mua giờ giao lại giao loại gel , ko đúng hàng cần đặt hàng",negative
 "Bán hàng và quảng cáo ko đúng sự thật , quá nản",very_negative
-"Hộp nhìn mới, không móp méo, date còn hơn 1 năm. Chất kem nhẹ, lỏng hơn thường thấy một chút, mình da dầu thiếu nước bôi lên sau một đêm ngủ dầu thấy đổ dầu ở dạng ít đến vừa và rửa mặt xong thì da mềm và sáng. Hiện tại chưa thấy kích ứng. Tiki giao đúng ngày hẹn và đóng gói đẹp ạ.",positive
+"Hộp còn rất mới, không hề bị móp méo, date còn hơn 1 năm. Chất kem nhẹ, lỏng hơn thường thấy một chút, mình da dầu thiếu nước bôi lên sau một đêm ngủ dầu thấy đổ dầu ở dạng ít đến vừa và rửa mặt xong thì da mềm và sáng. Hiện tại chưa thấy kích ứng. Tiki giao đúng ngày hẹn và đóng gói đẹp ạ. Nếu ổn sẽ quay laị ủng hộ shop.",positive
 "giao hàng nhanh.Mình mới dùng được mấy lần thôi, thấy có hiệu quả dưỡng ẩm tốt.",positive
 "Sữa rửa mặt Hada Labo dùng tốt, rửa sạch, da mịn, không bị nhờn rít, cũng không bị khô da. Giá khuyến mãi, quà tặng vừa xịn vừa cute. Đóng hộp gọn gàng sạch đẹp, giao hàng siêu tốc. 💯🩵",very_positive
 "Hình thức tệ: sp ko có hộp hay tem dán niêm phong gì cả; không thấy nsx nhưng hsd đến tận tháng 11/2028(ít nhất 4 năm) trong khi thông thường các sp sữa rửa mặt hay mỹ phẩm khác sẽ có hsd dưới 3 năm, rất lo ngại về chất lượng, nghi vấn hàng giả",very_negative
 Có hiệu quả giảm khô da sau khi sd.,positive
 "Tiêu đề ghi tặng kèm bookmark, nhưng không thấy đâu. Hỏi thì shop trả lời chương trình tặng kèm trước đó, vậy ghi cái tiêu đề tặng kèm gì. Cảm thấy không hài lòng với cách phục vụ này",very_negative
-"Mình mới đọc 1 ít, nhưng cảm thấy chưa tin tưởng để quyết định làm theo những lời khuyên của tác giả. Mình sẽ nghiên cứu thêm",neutral
+"Mình mới đọc 1 ít, nhưng cảm thấy chưa quyết định làm theo những lời khuyên của tác giả. Mình thấy sách khá ổn.",neutral
 "Không có sổ tay hướng dẫn, không kết nối được Bluetooth, muốn liên lạc với shop để tư vấn nhưng không được, tự làm theo hướng dẫn của Window Microsoft cả chục lần nhưng vẫn không thấy biểu tượng Bluetooth",very_negative
-"Shop hỗ trợ nhiệt tình, xài tạm đc trong tầm giá.",positive
+"Shop hỗ trợ nhiệt tình, xài tạm đc trong tầm giá.",neutral
 Quá tệ.linh kiện bên trong nó thay hết. Vỏ sau lưng mất luôn ốc r. Trầy xước lung tung luôn. lag vs đơ cực kì. cài windows còn k được,very_negative
 "Có hai chế độ sấy mát và sấy nóng. Mình chỉ dùng sấy mát, ít nóng đỡ khô hư tóc, không có mùi nhựa khi máy hoạt động. Sấy xong tắt máy thấy máy không hề nóng. Máy nhẹ tênh màu hồng đẹp 😄",very_positive
 "Chỉ có 2 tốc độ sấy. Tầm giá bình dân, vậy là ổn.",positive
-Ảnh sp 1 máy công suất 1200 . Giao hàng là 1 máy công suất 1000,negative
+"Ảnh sp 1 máy công suất 1200 . Giao hàng là 1 máy công suất 1000. Hơi thất vọng.",negative
 "Máy ok,đúng như quảng cáo,giao hàng nhanh,đúng tiến độ.",positive
 "Nhỏ gọn, tiện dụng. Chất lượng tốt trong tầm giá.",very_positive
 "nhỏ gọn, hơi ồn nhưng ko sao, nhanh khô",positive
