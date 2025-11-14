@@ -74,7 +74,7 @@ pip install -r requirements310.txt
 </details>
 
 ```
-pip install -r requirements39.txt
+pip install -r requirements38.txt
 ```
 # Training
 
