@@ -1,8 +1,9 @@
 # Environment
-For Phobert python version 3.10.18
 
     git clone git@github.com:ntdathp/nlp_learning.git
     cd nlp_learning
+
+> For TFIDF, Phobert python version 3.10.18
 
 <details>
   <summary> For virtual environment. Click here to expand</summary>
@@ -30,15 +31,76 @@ For Phobert python version 3.10.18
     python -m venv .venv310
     source .venv310/bin/activate
     python -V  # 3.10.18
-    pip install --upgrade pip setuptools whee
+    pip install --upgrade pip setuptools wheel
     
 </details>
 
 
 ```
-pip install -r requirements.txt
+pip install -r requirements310.txt
 ```
-# Phobert
+
+> For BiLSTM python version 3.8.10
+
+<details>
+  <summary> For virtual environment. Click here to expand</summary>
+
+    # Install pyenv + build deps (Ubuntu/Debian)
+    sudo apt update
+    sudo apt install -y build-essential libssl-dev zlib1g-dev \
+    libbz2-dev libreadline-dev libsqlite3-dev curl llvm \
+    libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
+    libffi-dev liblzma-dev
+    curl https://pyenv.run | bash
+
+    # Add pyenv to shell
+    echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+    echo 'command -v pyenv >/dev/null || export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+    echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+    exec $SHELL   # or: source ~/.bashrc
+
+    # Install Python 3.8.10
+    pyenv install 3.8.10
+    pyenv local 3.8.10
+    python -V    # check Python 3.8.10
+
+    # Create and activate venv
+    python -m venv .venv38
+    source .venv38/bin/activate
+    python -V    # 3.8.10
+    pip install --upgrade pip setuptools wheel
+
+    
+</details>
+
+```
+pip install -r requirements39.txt
+```
+# Training
+>For training see the train_xxx.py.
+
+
+# TF-IDF + (Logistic Regression/Linear SVM)
+
+Download trained model [here](https://drive.google.com/drive/folders/1PL8SkWgrvDVAQdxvvBom4vErmJ3N9AQj?usp=sharing). Remember to extract zip file.
+
+> Change the path to the trained model in the jupyter notebook.
+
+```python
+MODEL_PATH = Path("tfidf_baseline.joblib")
+```
+
+# BiLSTM
+
+Download trained model [here](https://drive.google.com/drive/folders/1l7w9Y-VihGvjwxzucRqFgp9jTztnL5x9?usp=drive_link). Remember to extract zip file.
+
+> Change the path to the trained model in the jupyter notebook.
+
+```python
+MODEL_DIR = "/home/dat/llm_ws/bilstm/bilstm_vn_sentiment_5cls" 
+```
+
+# Phobert with GUI
 
 > Change the path to the trained model in **`phobert/my_phobert_only_cpu.py`** or **`phobert/my_phobert_only.py`**, depending on whether you want to run on **CPU** or **GPU**.
 
@@ -65,8 +127,16 @@ cd phobert
 python chat_toolbox.py
 ```
 
-# LLM
-Read 
+# Local LLM
 
+Pull model from ollama.
 
+```
+ollama pull <model_name>
+```
 
+>Change the **MODEL_NAME** in the jupyter notebook.
+
+```python
+MODEL_NAME = "<model_name>"
+```

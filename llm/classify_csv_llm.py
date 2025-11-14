@@ -7,7 +7,7 @@ import re
 import requests
 
 # ================== Cấu hình ==================
-DEFAULT_MODEL = "qwen2.5:7b-instruct"
+DEFAULT_MODEL = "qwen3:8b-instruct"
 OLLAMA_URL = "http://localhost:11434/api/generate"
 LABELS = ["very_positive", "positive", "neutral", "negative", "very_negative"]
 DEBUG = False  # Bật True nếu muốn in log
