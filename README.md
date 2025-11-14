@@ -1,4 +1,11 @@
-# Environment
+# Vietname review sentiment
+
+
+<p align="center">
+  <img src="media/gui.gif" alt="Demo GUI" width="1000">
+</p>
+
+## Environment
 
     git clone git@github.com:ntdathp/nlp_learning.git
     cd nlp_learning
@@ -76,12 +83,12 @@ pip install -r requirements310.txt
 ```
 pip install -r requirements38.txt
 ```
-# Training
+## Training
 
 For training see the train_xxx.py.
 
 
-# TF-IDF + (Logistic Regression/Linear SVM)
+## TF-IDF + (Logistic Regression/Linear SVM)
 
 Download trained model [here](https://drive.google.com/drive/folders/1PL8SkWgrvDVAQdxvvBom4vErmJ3N9AQj?usp=sharing). Remember to extract zip file.
 
@@ -101,7 +108,7 @@ Download trained model [here](https://drive.google.com/drive/folders/1l7w9Y-VihG
 MODEL_DIR = "/home/dat/llm_ws/bilstm/bilstm_vn_sentiment_5cls" 
 ```
 
-# Phobert with GUI
+## Phobert with GUI
 
 > Change the path to the trained model in **`phobert/my_phobert_only_cpu.py`** or **`phobert/my_phobert_only.py`**, depending on whether you want to run on **CPU** or **GPU**.
 
@@ -128,7 +135,10 @@ cd phobert
 python chat_toolbox.py
 ```
 
-# Local LLM
+
+
+
+## Local LLM
 
 Pull model from ollama.
 
