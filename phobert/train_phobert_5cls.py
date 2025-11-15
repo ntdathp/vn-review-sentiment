@@ -685,8 +685,8 @@ if __name__ == "__main__":
     p.add_argument("--model_name", default=None, help="vinai/phobert-base hoặc phobert-large")
 
     p.add_argument("--max_len", type=int, default=160)
-    p.add_argument("--batch_size", type=int, default=132)  # chỉnh theo GPU
-    p.add_argument("--epochs", type=int, default=2)
+    p.add_argument("--batch_size", type=int, default=64)  # chỉnh theo GPU
+    p.add_argument("--epochs", type=int, default=5)
     p.add_argument("--lr", type=float, default=4e-5)
     p.add_argument("--weight_decay", type=float, default=0.05)
     p.add_argument("--hidden_dropout", type=float, default=0.2)
@@ -707,7 +707,7 @@ if __name__ == "__main__":
     p.add_argument("--seed", type=int, default=42)
 
     # Eval/save control (tùy môi trường: sẽ chỉ áp dụng khi cả hai key support)
-    p.add_argument("--eval_strategy", choices=["epoch","steps","no"], default="epoch",
+    p.add_argument("--eval_strategy", choices=["epoch","steps","no"], default="no",
                    help="Nếu môi trường không hỗ trợ đầy đủ, script sẽ tự emulate mỗi epoch và không dùng load_best_model_at_end.")
     p.add_argument("--eval_steps", type=int, default=200,
                    help="Chỉ dùng khi --eval_strategy=steps")
