@@ -7,7 +7,7 @@
 
 ## Environment
 
-    git clone git@github.com:ntdathp/nlp_learning.git
+    git clone git@github.com:ntdathp/vn-review-sentiment.git
     cd nlp_learning
 
 > For TFIDF, Phobert python version 3.10.18
