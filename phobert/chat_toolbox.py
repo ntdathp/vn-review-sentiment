@@ -18,6 +18,18 @@ import sys, os, traceback, importlib, importlib.util, html, json, re, unicodedat
 from typing import Callable, Optional
 from collections import Counter
 from PyQt6 import QtCore, QtWidgets, QtGui
+from PyQt6.QtWidgets import (
+    QApplication, QWidget, QVBoxLayout, QLabel, QMainWindow, QPushButton,
+    QHBoxLayout, QTabWidget, QStackedWidget, QToolBar
+)
+from PyQt6.QtCore import QRunnable, QThreadPool, pyqtSignal, QObject, QThread, pyqtSignal, pyqtSlot
+import queue
+import time 
+import requests
+import re
+headers = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
 
 # ====== import textproc (file bạn tự code) ======
 try:
@@ -101,6 +113,33 @@ class InferWorker(QtCore.QObject):
         except Exception as e:
             self.failed.emit(f"{e}\n{traceback.format_exc()}")
 
+## Continues wk
+class ModelWorkerThread(QObject):
+    finished = pyqtSignal(str, str)  
+    failed = pyqtSignal(str, str)    
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+        self.tasks = queue.Queue()
+        self._running = True
+
+    @pyqtSlot()
+    def run(self):
+        while self._running:
+            try:
+                text = self.tasks.get(timeout=0.5)  
+                output = self.model.infer(text)  
+                self.finished.emit(text, output)
+            except queue.Empty:
+                continue
+            except Exception as e:
+                self.failed.emit(text, str(e))
+    def stop(self):
+        self._running = False
+
+    def add_task(self, text):
+        self.tasks.put(text)
+
 # -------------------------------
 # Main Window
 # -------------------------------
@@ -167,6 +206,9 @@ class ChatWindow(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.reset_counters()
+        self.total_comments = 0
+        self.processed_comments = 0
         self.setWindowTitle("Chat Toolbox (PyQt6)")
         self.resize(1100, 680)
         self.setMinimumWidth(960)
@@ -202,9 +244,26 @@ class ChatWindow(QtWidgets.QMainWindow):
         main_layout = QtWidgets.QVBoxLayout(central); main_layout.setContentsMargins(10,10,10,10); main_layout.setSpacing(8)
         main_layout.addLayout(top_bar)
 
+        Tabs= QTabWidget()
+        main_layout.addWidget(Tabs)
+
+        manual_tab = QWidget()
+        manual_layout = QVBoxLayout(manual_tab)
+        manual_layout.addWidget(QLabel("MANUAL PAGE"))
+
+        auto_tab = QWidget()
+        auto_layout = QVBoxLayout(auto_tab)
+        auto_layout.addWidget(QLabel("AUTO PAGE"))
+        auto_layout.setDirection(QtWidgets.QBoxLayout.Direction.TopToBottom)
+        auto_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        Tabs.addTab(manual_tab, "Manual")
+        Tabs.addTab(auto_tab, "Auto")
+
+
+
         self.history = QtWidgets.QTextEdit(); self.history.setReadOnly(True)
         self.history.setPlaceholderText("Lịch sử hội thoại sẽ hiển thị ở đây…")
-        self.history.setMinimumHeight(320); main_layout.addWidget(self.history, 1)
+        self.history.setMinimumHeight(320); manual_layout.addWidget(self.history, 1)
 
         input_row = QtWidgets.QHBoxLayout()
         self.input = QtWidgets.QPlainTextEdit()
@@ -212,15 +271,40 @@ class ChatWindow(QtWidgets.QMainWindow):
         self.input.installEventFilter(self)
         self.btn_send = QtWidgets.QPushButton("Send"); self.btn_send.setDefault(True)
         self.btn_send.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.PointingHandCursor))
-        input_row.addWidget(self.input, 1); input_row.addWidget(self.btn_send); main_layout.addLayout(input_row)
+        input_row.addWidget(self.input, 1); input_row.addWidget(self.btn_send); manual_layout.addLayout(input_row)
 
         bottom_bar = QtWidgets.QHBoxLayout(); bottom_bar.setSpacing(8); bottom_bar.setContentsMargins(0,0,0,0)
         self.btn_save = QtWidgets.QPushButton("Save Log…"); self.btn_clear_chat = QtWidgets.QPushButton("Clear Chat")
         bottom_bar.addWidget(self.btn_save); bottom_bar.addWidget(self.btn_clear_chat); bottom_bar.addStretch(1)
         self.status = QtWidgets.QLabel("Ready"); self.status.setStyleSheet("color: gray;"); self.status.setFixedWidth(90)
-        bottom_bar.addWidget(self.status); main_layout.addLayout(bottom_bar)
+        bottom_bar.addWidget(self.status); manual_layout.addLayout(bottom_bar)
+
+        container = QtWidgets.QWidget()
+        StackPn=QtWidgets.QHBoxLayout(container)
+        StackPn.setContentsMargins(0, 0, 0, 0)
+        StackPn.setSpacing(5)
+
+        self.link = QtWidgets.QLineEdit(); self.link.setReadOnly(False)
+        self.link.setPlaceholderText("Dán link sản phẩm vào đây…")
+        self.link.setMaximumHeight(40)
+        self.link.setMinimumHeight(30)
+        
+
+        self.Excute=QtWidgets.QPushButton("Execute")
+        self.Excute.setFixedWidth(80)
+        self.Excute.setFixedHeight(41)
+
+        StackPn.addWidget(self.link)
+        StackPn.addWidget(self.Excute)
+        auto_layout.addWidget(container)
+
+        self.Rs = QtWidgets.QTextEdit(); self.Rs.setReadOnly(True)
+        self.Rs.setPlaceholderText("Kết quả phân tích")
+        self.Rs.setMinimumHeight(30)
+        auto_layout.addWidget(self.Rs, 1)
 
         # Signals
+        self.Excute.clicked.connect(self.on_Execute)
         self.btn_send.clicked.connect(self.on_send)
         self.btn_save.clicked.connect(self.on_save_log)
         self.btn_clear_chat.clicked.connect(self.on_clear_chat)
@@ -240,6 +324,20 @@ class ChatWindow(QtWidgets.QMainWindow):
 
         if tp is None:
             self.append_error("Không import được textproc.py — gate vẫn chạy nhưng không dùng được normalize/lexicon từ textproc.")
+
+        if self.use_llm:
+            url = self.txt_llm_url.text().strip()
+            model = self.cmb_llm_model.currentText().strip()
+            runner = self._classify_llm_runner(url=url, model=model)
+        else:
+            runner = lambda t: self.model.infer(t, use_normalize=False)
+        self.worker = ModelWorkerThread(self.model)
+        self.thread = QThread()
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.on_finished)
+        self.worker.failed.connect(self.on_failed)
+        self.thread.start()
 
     # ---------- UI helpers ----------
     def _append_block(self, title_html: str, body_text: str):
@@ -722,6 +820,130 @@ class ChatWindow(QtWidgets.QMainWindow):
     def on_model_cleared(self):
         self.lbl_model.setText("No model loaded"); self.lbl_model.setStyleSheet("color: gray;")
 
+    def is_valid_tiki_url(self,url: str):
+        if not url.startswith("https://tiki.vn/"):
+            return False
+        if re.search(r"-p\d+\.html", url):
+            return True
+        return False
+
+    def get_product_id_from_url(self, url: str):
+        match = re.search(r"-p(\d+)\.html", url)
+        return match.group(1) if match else None
+
+    def get_product_name(self, product_id):
+        url = f"https://api.tiki.vn/v2/products/{product_id}"
+        res = requests.get(url, headers=headers)
+        if res.status_code != 200:
+            return None
+        return res.json().get("name")
+
+    def get_comments(self, product_id, n):
+        api = f"https://api.tiki.vn/v2/reviews?product_id={product_id}&limit={n}"
+        res = requests.get(api, headers=headers)
+        if res.status_code != 200:
+            return 0, []
+        data = res.json()
+        total_comments = data.get("paging", {}).get("total", 0)
+        comments = data.get("data", [])
+        texts = [r.get("content") for r in comments if r.get("content")]
+        return total_comments, texts
+
+    def on_Execute(self):
+        self.Rs.clear()
+        self.reset_counters()
+        link = self.link.text().strip()
+        if not self.is_valid_tiki_url(link):
+            self.Rs.append("Link không phải link sản phẩm Tiki hợp lệ!")
+            return
+
+        product_id = self.get_product_id_from_url(link)
+        if not product_id:
+            self.Rs.append("Không tìm được product_id từ link!")
+            return
+        product_name = self.get_product_name(product_id)
+        self.Rs.append(f"Tên sản phẩm: {product_name}")
+        n = 10
+        total, comments = self.get_comments(product_id, n)
+        self.Rs.append(f"Tổng số comment: {total}")
+        self.Rs.append(f"Số comment lấy ra: {len(comments)}")
+        self.threadpool = QThreadPool.globalInstance()
+        max_threads = 5  
+        self.threadpool.setMaxThreadCount(max_threads)
+        self.total_comments = len(comments)
+        for i, c in enumerate(comments, 1):
+            is_bad, _, reason_msg = self._is_low_info(c)
+            if is_bad:
+                skipped = (
+                    f"Text: {c}\n"
+                    f"Pred: <skipped>\n"
+                    f"Note: Bỏ qua đầu vào — {reason_msg}\n"
+                )
+                self.append_model(skipped)
+                self.status.setText("Ready"); self.status.setStyleSheet("color: gray;")
+                self.total_comments-=1
+                continue
+            self.worker.add_task(c)
+
+    def closeEvent(self, event):
+        self.worker.stop()
+        self.thread.quit()
+        self.thread.wait()
+        event.accept()
+    
+    
+    def reset_counters(self):
+        self.counts = {
+            "very_positive": 0,
+            "positive": 0,
+            "neutral": 0,
+            "negative": 0,
+            "very_negative": 0,
+        }
+        self.processed_comments = 0
+        self.total_comments = 0
+
+    def on_failed(self, input_text, output_text):
+        self.Rs.append(f"Input: {input_text}")
+        self.Rs.append(f'<span style="color: green;">==> {output_text}</span>')
+
+    def on_finished(self, input_text, output_text):
+        self.processed_comments += 1
+        self.update_counters_from_output(output_text)
+
+        pos = output_text.find("Pred:")
+        if pos != -1:
+            output_text = output_text[pos:] 
+        else:
+            output_text = output_text
+
+        self.Rs.append(f"Input: {input_text}")
+        self.Rs.append(f'<span style="color: green;">==> {output_text}</span>')
+
+        if self.processed_comments == self.total_comments:
+            summary = self.compute_summary()
+            self.Rs.append("\n<b>Kết quả cuối cùng:</b>")
+            self.Rs.append(summary)
+
+    def update_counters_from_output(self, output_text):
+        match = re.search(r"Pred:\s*(\w+)", output_text)
+        if match:
+            label = match.group(1)
+            if label in self.counts:
+                self.counts[label] += 1
+
+    def compute_summary(self):
+        total = sum(self.counts.values())
+        if total == 0:
+            return "Không có dữ liệu để tổng hợp."
+        lines = []
+        for label, count in self.counts.items():
+            percent = (count / total) * 100
+            lines.append(f"{label}: {count}/{total} ({percent:.2f}%)")
+        max_label = max(self.counts, key=self.counts.get)
+        lines.append(f"\nKết luận chung: {max_label.upper()}")
+        return "\n".join(lines)
+    
     def on_send(self):
         text = self.input.toPlainText().strip()
         if not text: return
